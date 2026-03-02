@@ -1,0 +1,23 @@
+=============================================
+|                                           |
+|                task week 1                |
+|                                           |
+=============================================
+1. Clean Architecture concept
+
+2.  Bloc basics
+
+3. Firebase setup
+
+4. Folder structure
+
+تنفذ:
+
+1.Create Flutter project
+
+2.Connect Firebase
+
+3.Setup Auth
+
+تعمل4.  UI مبدئي لـ Login & Register
+

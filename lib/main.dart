@@ -7,12 +7,12 @@ void main() {
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-  @override//yyyyyytttttttttttttt
+  @override//yyyyyy
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: Scaffold(
         body: Center(
-          child: Text('Hello !world sadcsa dfa mohamed'),
+          child: Text('Hello !world'),
         ),
       ),
     );

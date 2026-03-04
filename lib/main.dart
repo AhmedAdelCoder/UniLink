@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'firebase_options.dart'; // 👈 مهم جدًا
+
 import 'core/config/injection_container.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -14,7 +16,12 @@ import 'features/home/presentation/home_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // 👇 الحل الأساسي للمشكلة
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   await initDependencies();
   runApp(const UniLinkApp());
 }

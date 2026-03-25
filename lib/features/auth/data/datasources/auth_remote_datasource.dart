@@ -12,6 +12,8 @@ abstract class AuthRemoteDataSource {
     required UserRole role,
   });
 
+  Future<bool> isEmailRegistered({required String email});
+
   Future<AppUserModel> login({
     required String email,
     required String password,
@@ -58,9 +60,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       role: role,
     );
 
-    await _usersCollection.doc(uid).set(userDoc.toFirestore(), SetOptions(merge: true));
+    await _usersCollection
+        .doc(uid)
+        .set(userDoc.toFirestoreNewUser(), SetOptions(merge: true));
 
     return userDoc;
+  }
+
+  @override
+  Future<bool> isEmailRegistered({required String email}) async {
+    final methods =
+        await _firebaseAuth.fetchSignInMethodsForEmail(email.trim());
+    return methods.isNotEmpty;
   }
 
   @override
@@ -88,7 +99,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         fullName: user.displayName ?? '',
         role: UserRole.student,
       );
-      await _usersCollection.doc(user.uid).set(minimalUser.toFirestore(), SetOptions(merge: true));
+      await _usersCollection
+          .doc(user.uid)
+          .set(minimalUser.toFirestoreNewUser(), SetOptions(merge: true));
       return minimalUser;
     }
 
@@ -123,7 +136,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         fullName: user.displayName ?? '',
         role: UserRole.student,
       );
-      await _usersCollection.doc(user.uid).set(minimalUser.toFirestore(), SetOptions(merge: true));
+      await _usersCollection
+          .doc(user.uid)
+          .set(minimalUser.toFirestoreNewUser(), SetOptions(merge: true));
       return minimalUser;
     }
 

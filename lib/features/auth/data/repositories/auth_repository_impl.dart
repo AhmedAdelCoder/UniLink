@@ -13,6 +13,20 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({required this.remoteDataSource});
 
   @override
+  Future<Either<Failure, bool>> isEmailRegistered({required String email}) async {
+    try {
+      final exists = await remoteDataSource.isEmailRegistered(email: email);
+      return Right(exists);
+    } on fb.FirebaseAuthException catch (e) {
+      return Left(AuthFailure(_mapFirebaseAuthError(e)));
+    } on FirebaseException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Unexpected error occurred'));
+    } catch (_) {
+      return const Left(ServerFailure('Unexpected error occurred'));
+    }
+  }
+
+  @override
   Future<Either<Failure, AppUser>> register({
     required String name,
     required String email,

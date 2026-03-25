@@ -56,3 +56,12 @@ class FeedAddComment extends FeedEvent {
   List<Object?> get props => [postId, text];
 }
 
+class FeedDeletePost extends FeedEvent {
+  final String postId;
+
+  const FeedDeletePost(this.postId);
+
+  @override
+  List<Object?> get props => [postId];
+}
+

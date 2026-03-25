@@ -12,6 +12,7 @@ import '../../features/auth/domain/usecases/logout.dart';
 import '../../features/auth/domain/usecases/register.dart';
 import '../../features/auth/domain/usecases/reset_password.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/chat/data/chat_remote_datasource.dart';
 import '../../features/posts/data/datasources/posts_remote_datasource.dart';
 import '../../features/posts/data/repositories/post_repository_impl.dart';
 import '../../features/posts/domain/repositories/post_repository.dart';
@@ -22,6 +23,7 @@ import '../../features/posts/domain/usecases/get_feed_page.dart';
 import '../../features/posts/domain/usecases/like_post.dart';
 import '../../features/posts/domain/usecases/unlike_post.dart';
 import '../../features/posts/presentation/bloc/feed_bloc.dart';
+import '../../features/profile/data/profile_remote_datasource.dart';
 
 final sl = GetIt.instance;
 
@@ -43,6 +45,19 @@ Future<void> initDependencies() async {
       firestore: sl<FirebaseFirestore>(),
       storage: sl<FirebaseStorage>(),
       firebaseAuth: sl<fb.FirebaseAuth>(),
+    ),
+  );
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(
+      firestore: sl<FirebaseFirestore>(),
+      storage: sl<FirebaseStorage>(),
+      auth: sl<fb.FirebaseAuth>(),
+    ),
+  );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(
+      firestore: sl<FirebaseFirestore>(),
+      auth: sl<fb.FirebaseAuth>(),
     ),
   );
 
@@ -84,6 +99,7 @@ Future<void> initDependencies() async {
       likePost: sl<LikePost>(),
       unlikePost: sl<UnlikePost>(),
       addComment: sl<AddComment>(),
+      deletePost: sl<DeletePost>(),
     ),
   );
 }

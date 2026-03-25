@@ -12,11 +12,29 @@ class Register implements UseCase<AppUser, RegisterParams> {
 
   @override
   Future<Either<Failure, AppUser>> call(RegisterParams params) {
-    return repository.register(
-      name: params.name,
-      email: params.email,
-      password: params.password,
-      role: params.role,
+    return _call(params);
+  }
+
+  Future<Either<Failure, AppUser>> _call(RegisterParams params) async {
+    final existsResult =
+        await repository.isEmailRegistered(email: params.email);
+
+    return existsResult.fold(
+      (failure) => Left(failure),
+      (exists) async {
+        if (exists) {
+          return Left(
+            AuthFailure('An account already exists for that email.'),
+          );
+        }
+
+        return repository.register(
+          name: params.name,
+          email: params.email,
+          password: params.password,
+          role: params.role,
+        );
+      },
     );
   }
 }

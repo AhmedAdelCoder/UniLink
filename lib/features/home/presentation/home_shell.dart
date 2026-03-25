@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/config/injection_container.dart';
+import '../../chat/presentation/pages/chat_list_page.dart';
 import '../../posts/presentation/bloc/feed_bloc.dart';
 import '../../posts/presentation/pages/feed_page.dart';
+import '../../profile/presentation/pages/profile_page.dart';
+import '../../search/presentation/pages/search_page.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -27,9 +30,9 @@ class _HomeShellState extends State<HomeShell> {
       create: (_) => sl<FeedBloc>(),
       child: const FeedPage(),
     ),
-    const Center(child: Text('Search (coming soon)')),
-    const Center(child: Text('Chat (coming soon)')),
-    const Center(child: Text('Profile (coming soon)')),
+    const SearchPage(),
+    const ChatListPage(),
+    const ProfilePage(),
   ];
 
   @override

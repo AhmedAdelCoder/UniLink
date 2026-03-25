@@ -78,21 +78,20 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
         : queryBase;
 
     final snapshot = await query.get();
-    final likeDocs = currentUser != null
-        ? await _firestore
-            .collectionGroup('likes')
-            .where('userId', isEqualTo: currentUser.uid)
-            .where('postId', whereIn: snapshot.docs.map((d) => d.id).toList())
-            .get()
-        : null;
 
+    // Per-post like doc reads avoid collectionGroup + whereIn limits (max 10) and index issues.
     final likedPostIds = <String>{};
-    if (likeDocs != null) {
-      for (final doc in likeDocs.docs) {
-        final data = doc.data();
-        final postId = data['postId'] as String?;
-        if (postId != null) likedPostIds.add(postId);
-      }
+    if (currentUser != null && snapshot.docs.isNotEmpty) {
+      await Future.wait(
+        snapshot.docs.map((doc) async {
+          final likeSnap = await _postsCollection
+              .doc(doc.id)
+              .collection('likes')
+              .doc(currentUser.uid)
+              .get();
+          if (likeSnap.exists) likedPostIds.add(doc.id);
+        }),
+      );
     }
 
     final posts = snapshot.docs
@@ -177,7 +176,23 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
 
   @override
   Future<void> deletePost(String postId) async {
-    await _postsCollection.doc(postId).delete();
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw fb.FirebaseAuthException(
+        code: 'user-not-logged-in',
+        message: 'No user is currently logged in',
+      );
+    }
+    final postRef = _postsCollection.doc(postId);
+    final postSnap = await postRef.get();
+    if (!postSnap.exists) return;
+    final data = postSnap.data();
+    if (data == null) return;
+    final authorId = data['authorId'] as String?;
+    if (authorId != user.uid) {
+      throw StateError('You can only delete your own posts');
+    }
+    await postRef.delete();
   }
 
   @override

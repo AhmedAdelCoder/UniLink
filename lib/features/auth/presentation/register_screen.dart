@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:unilink/core/errors/failures.dart';
+import 'package:unilink/features/auth/domain/entities/app_user.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({
-    super.key,
-    required this.onRegisterSuccess,
-  });
-
+  const RegisterScreen({super.key, required this.onRegisterSuccess});
   static const routeName = '/register';
-
   final VoidCallback onRegisterSuccess;
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -21,7 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   String _role = 'student';
   bool _isLoading = false;
-
+  
+  get authRepository => null;
   @override
   void dispose() {
     _nameController.dispose();
@@ -30,23 +27,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _onRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+ Future<void> _onRegister() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 800));
-    setState(() => _isLoading = false);
+  setState(() => _isLoading = true);
 
-    if (!mounted) return;
-    widget.onRegisterSuccess();
-  }
+  // استدعي الـ repository للتسجيل
+  final result = await authRepository.register(
+    name: _nameController.text.trim(),
+    email: _emailController.text.trim(),
+    password: _passwordController.text,
+    role: _role == 'student' ? UserRole.student : UserRole.recruiter,
+  );
 
+  setState(() => _isLoading = false);
+
+  if (!mounted) return;
+
+  result.fold(
+    (failure) {
+      // لو فيه خطأ، اعرض Snackbar بالرسالة
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure is AuthFailure ? failure.message : 'Unexpected error')),
+      );
+    },
+    (user) {
+      // لو ناجح، نفذ الـ callback للانتقال للصفحة التالية
+      widget.onRegisterSuccess();
+    },
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create account'),
-      ),
+      appBar: AppBar(title: const Text('Create account')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -75,9 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Email'),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -162,4 +174,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-

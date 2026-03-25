@@ -5,6 +5,7 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/add_comment.dart';
 import '../../domain/usecases/create_post.dart';
+import '../../domain/usecases/delete_post.dart';
 import '../../domain/usecases/get_feed_page.dart';
 import '../../domain/usecases/like_post.dart';
 import '../../domain/usecases/unlike_post.dart';
@@ -18,6 +19,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final LikePost likePost;
   final UnlikePost unlikePost;
   final AddComment addComment;
+  final DeletePost deletePost;
 
   static const _pageSize = 10;
 
@@ -27,6 +29,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     required this.likePost,
     required this.unlikePost,
     required this.addComment,
+    required this.deletePost,
   }) : super(const FeedState.initial()) {
     on<FeedLoadInitial>(_onLoadInitial);
     on<FeedLoadMore>(_onLoadMore);
@@ -34,6 +37,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     on<FeedCreatePost>(_onCreatePost);
     on<FeedToggleLike>(_onToggleLike);
     on<FeedAddComment>(_onAddComment);
+    on<FeedDeletePost>(_onDeletePost);
   }
 
   Future<void> _onLoadInitial(
@@ -247,6 +251,40 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _onDeletePost(
+    FeedDeletePost event,
+    Emitter<FeedState> emit,
+  ) async {
+    final index = state.posts.indexWhere((p) => p.id == event.postId);
+    if (index == -1) return;
+    final removed = state.posts[index];
+    emit(
+      state.copyWith(
+        posts: [
+          ...state.posts.sublist(0, index),
+          ...state.posts.sublist(index + 1),
+        ],
+      ),
+    );
+
+    final result = await deletePost(DeletePostParams(event.postId));
+    result.fold(
+      (failure) {
+        emit(
+          state.copyWith(
+            errorMessage: _mapFailure(failure),
+            posts: [
+              ...state.posts.sublist(0, index),
+              removed,
+              ...state.posts.sublist(index),
+            ],
+          ),
+        );
+      },
+      (_) {},
     );
   }
 

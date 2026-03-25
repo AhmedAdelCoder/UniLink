@@ -28,11 +28,6 @@ class PostRepositoryImpl implements PostRepository {
         limit: limit,
       );
 
-      for (final doc in result.posts) {
-        // We don't have direct access to the DocumentSnapshot here,
-        // but we store snapshots in the datasource result via the lastDocument.
-      }
-
       // Maintain mapping for pagination using the result.lastDocument
       if (result.lastDocument != null) {
         _postSnapshots[result.lastDocument!.id] = result.lastDocument!;

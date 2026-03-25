@@ -1,8 +1,7 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'firebase_options.dart'; // 👈 مهم جدًا
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 import 'core/config/injection_container.dart';
 import 'core/routing/app_router.dart';
@@ -11,17 +10,15 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
+import 'features/auth/presentation/pages/onboarding_page.dart';
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/home/presentation/home_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 👇 الحل الأساسي للمشكلة
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
   await initDependencies();
   runApp(const UniLinkApp());
 }
@@ -78,11 +75,11 @@ class _UniLinkAppState extends State<UniLinkApp> {
           initialRoute: SplashScreen.routeName,
           routes: {
             SplashScreen.routeName: (context) => const SplashScreen(),
+            OnboardingPage.routeName: (context) => const OnboardingPage(), // ✅ أضفنا
             LoginPage.routeName: (context) => const LoginPage(),
             RegisterPage.routeName: (context) => const RegisterPage(),
             ResetPasswordPage.routeName: (context) => const ResetPasswordPage(),
-            HomeShell.routeName: (context) =>
-                HomeShell(onToggleTheme: _toggleTheme),
+            HomeShell.routeName: (context) => HomeShell(onToggleTheme: _toggleTheme),
           },
         ),
       ),

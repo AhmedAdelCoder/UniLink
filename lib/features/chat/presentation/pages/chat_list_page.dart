@@ -1,0 +1,70 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/config/injection_container.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../data/chat_remote_datasource.dart';
+import 'chat_detail_page.dart';
+
+class ChatListPage extends StatelessWidget {
+  const ChatListPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = context.watch<AuthBloc>().state.user?.id;
+    if (uid == null) {
+      return const Center(child: Text('Sign in to use chat'));
+    }
+
+    final chat = sl<ChatRemoteDataSource>();
+
+    return StreamBuilder<List<ChatThreadModel>>(
+      stream: chat.watchThreads(uid),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(child: Text('${snap.error}'));
+        }
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final threads = snap.data!;
+        if (threads.isEmpty) {
+          return const Center(
+            child: Text('No conversations yet.\nMessage someone from Search.'),
+          );
+        }
+        return ListView.builder(
+          itemCount: threads.length,
+          itemBuilder: (context, i) {
+            final t = threads[i];
+            return ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  t.otherUserName.isNotEmpty
+                      ? t.otherUserName[0].toUpperCase()
+                      : '?',
+                ),
+              ),
+              title: Text(t.otherUserName),
+              subtitle: Text(
+                t.lastMessageText.isEmpty ? 'No messages yet' : t.lastMessageText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () {
+                Navigator.of(context).pushNamed(
+                  ChatDetailPage.routeName,
+                  arguments: ChatDetailArgs(
+                    threadId: t.id,
+                    otherUserId: t.otherUserId,
+                    otherUserName: t.otherUserName,
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}

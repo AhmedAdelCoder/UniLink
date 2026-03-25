@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '429060196272',
     projectId: 'unilink-adbaa',
     storageBucket: 'unilink-adbaa.firebasestorage.app',
+    iosClientId: '429060196272-83sbi9mrvhhd2bdipjl85siu0qcgk4jj.apps.googleusercontent.com',
     iosBundleId: 'com.example.unilink',
   );
 
@@ -73,6 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '429060196272',
     projectId: 'unilink-adbaa',
     storageBucket: 'unilink-adbaa.firebasestorage.app',
+    iosClientId: '429060196272-83sbi9mrvhhd2bdipjl85siu0qcgk4jj.apps.googleusercontent.com',
     iosBundleId: 'com.example.unilink',
   );
 

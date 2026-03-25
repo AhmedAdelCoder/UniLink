@@ -33,122 +33,151 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthBloc>().add(
-          AuthRegisterRequested(
-            name: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            role: _role,
-          ),
-        );
+      AuthRegisterRequested(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        role: _role,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create account'),
-      ),
+      appBar: AppBar(title: const Text('Create account')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: BlocConsumer<AuthBloc, AuthState>(
-                  listener: (context, state) {
-                    if (state.status == AuthStatus.failure &&
-                        state.errorMessage != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(state.errorMessage!)),
-                      );
-                    }
-                  },
-                  builder: (context, state) {
-                    final isLoading = state.status == AuthStatus.loading;
-
-                    return Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Full name',
-                            ),
-                            validator: InputValidators.validateName,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            validator: InputValidators.validateEmail,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordController,
-                            decoration: const InputDecoration(
-                              labelText: 'Password',
-                            ),
-                            obscureText: true,
-                            validator: InputValidators.validatePassword,
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Role',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          SegmentedButton<UserRole>(
-                            segments: const [
-                              ButtonSegment(
-                                value: UserRole.student,
-                                label: Text('Student'),
-                                icon: Icon(Icons.school),
-                              ),
-                              ButtonSegment(
-                                value: UserRole.recruiter,
-                                label: Text('Recruiter'),
-                                icon: Icon(Icons.business_center),
-                              ),
-                            ],
-                            selected: {_role},
-                            onSelectionChanged: (value) {
-                              setState(() {
-                                _role = value.first;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: isLoading ? null : _onRegisterPressed,
-                              child: isLoading
-                                  ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text('Create account'),
-                            ),
-                          ),
-                        ],
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: BlocConsumer<AuthBloc, AuthState>(
+                listener: (context, state) {
+                  /// ❌ لو في error
+                  if (state.status == AuthStatus.failure) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          state.errorMessage ?? "Register failed",
+                        ),
                       ),
                     );
-                  },
-                ),
+                  }
+
+                  /// ✅ لو نجح
+                  if (state.status == AuthStatus.success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Account Created Successfully")),
+                    );
+
+                    Navigator.pop(context); // يرجع ل login
+                  }
+                },
+                builder: (context, state) {
+                  final isLoading = state.status == AuthStatus.loading;
+
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            /// Name
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Full name',
+                              ),
+                              validator: InputValidators.validateName,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            /// Email
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: InputValidators.validateEmail,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            /// Password
+                            TextFormField(
+                              controller: _passwordController,
+                              decoration: const InputDecoration(
+                                labelText: 'Password',
+                              ),
+                              obscureText: true,
+                              validator: InputValidators.validatePassword,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            /// Role
+                            Text(
+                              'Role',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            SegmentedButton<UserRole>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: UserRole.student,
+                                  label: Text('Student'),
+                                  icon: Icon(Icons.school),
+                                ),
+                                ButtonSegment(
+                                  value: UserRole.recruiter,
+                                  label: Text('Recruiter'),
+                                  icon: Icon(Icons.business_center),
+                                ),
+                              ],
+                              selected: {_role},
+                              onSelectionChanged: (value) {
+                                setState(() {
+                                  _role = value.first;
+                                });
+                              },
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            /// Register Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed:
+                                    isLoading ? null : _onRegisterPressed,
+                                child: isLoading
+                                    ? const SizedBox(
+                                        height: 18,
+                                        width: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const Text('Create account'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -157,4 +186,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
-

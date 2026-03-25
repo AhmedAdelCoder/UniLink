@@ -31,11 +31,11 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<AuthBloc>().add(
-          AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          ),
-        );
+      AuthLoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      ),
+    );
   }
 
   @override
@@ -49,11 +49,25 @@ class _LoginPageState extends State<LoginPage> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: BlocConsumer<AuthBloc, AuthState>(
                 listener: (context, state) {
-                  if (state.status == AuthStatus.failure &&
-                      state.errorMessage != null) {
+                  // ❌ لو في error
+                  if (state.status == AuthStatus.failure) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.errorMessage!)),
+                      SnackBar(
+                        content: Text(
+                          state.errorMessage ?? "Login failed",
+                        ),
+                      ),
                     );
+                  }
+
+                  // ✅ لو نجح
+                  if (state.status == AuthStatus.success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Login Success")),
+                    );
+
+                    // تقدر تنقله لصفحة تانية هنا
+                    // Navigator.pushReplacementNamed(context, '/home');
                   }
                 },
                 builder: (context, state) {
@@ -77,6 +91,8 @@ class _LoginPageState extends State<LoginPage> {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 32),
+
+                      /// ✅ الكارد
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(20),
@@ -84,24 +100,34 @@ class _LoginPageState extends State<LoginPage> {
                             key: _formKey,
                             child: Column(
                               children: [
+                                /// Email
                                 TextFormField(
                                   controller: _emailController,
                                   decoration: const InputDecoration(
                                     labelText: 'Email',
                                   ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: InputValidators.validateEmail,
+                                  keyboardType:
+                                      TextInputType.emailAddress,
+                                  validator:
+                                      InputValidators.validateEmail,
                                 ),
+
                                 const SizedBox(height: 16),
+
+                                /// Password
                                 TextFormField(
                                   controller: _passwordController,
                                   decoration: const InputDecoration(
                                     labelText: 'Password',
                                   ),
                                   obscureText: true,
-                                  validator: InputValidators.validatePassword,
+                                  validator:
+                                      InputValidators.validatePassword,
                                 ),
+
                                 const SizedBox(height: 16),
+
+                                /// Forgot password
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
@@ -113,19 +139,26 @@ class _LoginPageState extends State<LoginPage> {
                                     child: const Text('Forgot password?'),
                                   ),
                                 ),
+
                                 const SizedBox(height: 8),
+
+                                /// Login Button
                                 SizedBox(
                                   width: double.infinity,
                                   child: FilledButton(
-                                    onPressed: isLoading ? null : _onLoginPressed,
+                                    onPressed: isLoading
+                                        ? null
+                                        : _onLoginPressed,
                                     child: isLoading
                                         ? const SizedBox(
                                             height: 18,
                                             width: 18,
-                                            child: CircularProgressIndicator(
+                                            child:
+                                                CircularProgressIndicator(
                                               strokeWidth: 2,
                                               valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
+                                                  AlwaysStoppedAnimation<
+                                                      Color>(
                                                 Colors.white,
                                               ),
                                             ),
@@ -138,17 +171,23 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 16),
+
+                      /// Register
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
                         children: [
                           const Text('New here?'),
                           TextButton(
                             onPressed: () {
-                              Navigator.of(context)
-                                  .pushNamed(RegisterPage.routeName);
+                              Navigator.of(context).pushNamed(
+                                RegisterPage.routeName,
+                              );
                             },
-                            child: const Text('Create an account'),
+                            child:
+                                const Text('Create an account'),
                           ),
                         ],
                       ),
@@ -163,4 +202,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

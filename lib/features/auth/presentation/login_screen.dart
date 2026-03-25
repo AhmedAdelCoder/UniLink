@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'register_screen.dart';
 import 'reset_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    required this.onLoginSuccess,
-  });
-
+  const LoginScreen({super.key, required this.onLoginSuccess});
   static const routeName = '/login';
-
   final VoidCallback onLoginSuccess;
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -22,7 +15,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-
   @override
   void dispose() {
     _emailController.dispose();
@@ -32,11 +24,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
     await Future<void>.delayed(const Duration(milliseconds: 800));
     setState(() => _isLoading = false);
-
     if (!mounted) return;
     widget.onLoginSuccess();
   }
@@ -56,10 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'UniLink',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -113,9 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () {
-                                  Navigator.of(context).pushNamed(
-                                    ResetPasswordScreen.routeName,
-                                  );
+                                  Navigator.of(
+                                    context,
+                                  ).pushNamed(ResetPasswordScreen.routeName);
                                 },
                                 child: const Text('Forgot password?'),
                               ),
@@ -133,8 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
-                                            Colors.white,
-                                          ),
+                                                Colors.white,
+                                              ),
                                         ),
                                       )
                                     : const Text('Login'),
@@ -152,8 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text('New here?'),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context)
-                              .pushNamed(RegisterScreen.routeName);
+                          Navigator.of(
+                            context,
+                          ).pushNamed(RegisterScreen.routeName);
                         },
                         child: const Text('Create an account'),
                       ),
@@ -168,4 +156,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

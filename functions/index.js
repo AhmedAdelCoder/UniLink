@@ -5,7 +5,8 @@ const app = express();
 app.use(express.json());
 
 // ✅ Put your NEW SendGrid API key here
-sgMail.setApiKey("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");
+require("dotenv").config();
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 app.post("/send-email", async (req, res) => {
   const { email, name } = req.body;

@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:unilink/features/request/request.dart';
 
 import '../../domain/entities/app_user.dart';
 import '../models/app_user_model.dart';
 
-abstract class AuthRemoteDataSource {
+abstract class AuthRemoteDataSource 
+{
+
   Future<AppUserModel> register({
     required String name,
     required String email,
@@ -26,7 +29,8 @@ abstract class AuthRemoteDataSource {
   Future<AppUserModel> getCurrentUser();
 }
 
-class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource 
+{
   final fb.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
@@ -63,7 +67,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     await _usersCollection
         .doc(uid)
         .set(userDoc.toFirestoreNewUser(), SetOptions(merge: true));
-
+  await sendWelcomeEmail(email, name);
     return userDoc;
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+// ignore: unused_import
+import '../../../request/request.dart';
 import '../../../../core/utils/input_validators.dart';
 import '../../domain/entities/app_user.dart';
 import '../bloc/auth_bloc.dart';
@@ -53,7 +54,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: BlocConsumer<AuthBloc, AuthState>(
-                listener: (context, state) {
+                listener: (context, state) async{
                   /// ❌ لو في error
                   if (state.status == AuthStatus.failure) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -70,7 +71,12 @@ class _RegisterPageState extends State<RegisterPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Account Created Successfully")),
                     );
+                          await sendWelcomeEmail(
+                        state.user?.email ?? _emailController.text.trim(),
+                          state.user?.fullName?? _nameController.text.trim(),
+                            );
 
+                    // ignore: use_build_context_synchronously
                     Navigator.pop(context); // يرجع ل login
                   }
                 },

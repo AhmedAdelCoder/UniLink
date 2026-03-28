@@ -2,9 +2,10 @@
 node_modules/
 
 # Environment files
-.env
 *.env
-key.env
+.env
+.env.*
+
 
 # Local configs
 *.local

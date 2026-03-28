@@ -1,5 +1,6 @@
 
- UniLink
+ #UniLink
+ 
 UniLink is a modern Flutter-based mobile application that connects students with recruiters in a simple, fast, and professional way.
 
 The app aims to bridge the gap between education and career opportunities by providing a platform for networking, communication, and growth.

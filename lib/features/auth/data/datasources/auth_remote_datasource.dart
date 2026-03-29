@@ -5,9 +5,7 @@ import 'package:unilink/features/request/request.dart';
 import '../../domain/entities/app_user.dart';
 import '../models/app_user_model.dart';
 
-abstract class AuthRemoteDataSource 
-{
-
+abstract class AuthRemoteDataSource {
   Future<AppUserModel> register({
     required String name,
     required String email,
@@ -29,8 +27,7 @@ abstract class AuthRemoteDataSource
   Future<AppUserModel> getCurrentUser();
 }
 
-class AuthRemoteDataSourceImpl implements AuthRemoteDataSource 
-{
+class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final fb.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
 
@@ -55,7 +52,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource
       password: password,
     );
 
-    final uid = credential.user!.uid;
+    final firebaseUser = credential.user!;
+    final uid = firebaseUser.uid;
 
     final userDoc = AppUserModel(
       id: uid,
@@ -64,10 +62,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource
       role: role,
     );
 
-    await _usersCollection
-        .doc(uid)
-        .set(userDoc.toFirestoreNewUser(), SetOptions(merge: true));
-  await sendWelcomeEmail(email, name);
+    await _usersCollection.doc(uid).set(
+          userDoc.toFirestoreNewUser(),
+          SetOptions(merge: true),
+        );
+
+    await sendWelcomeEmail(email, name);
+
     return userDoc;
   }
 
@@ -87,15 +88,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource
       email: email,
       password: password,
     );
-    final user = credential.user;
-    if (user == null) {
-      throw fb.FirebaseAuthException(
-        code: 'user-not-found',
-        message: 'User not found',
-      );
-    }
-
+    final user = credential.user!;
     final doc = await _usersCollection.doc(user.uid).get();
+
     if (!doc.exists) {
       final minimalUser = AppUserModel(
         id: user.uid,
@@ -128,7 +123,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource
     if (user == null) {
       throw fb.FirebaseAuthException(
         code: 'user-not-logged-in',
-        message: 'No user is currently logged in',
+        message: 'No user is currently logged in is ok',
       );
     }
 
@@ -149,4 +144,3 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource
     return AppUserModel.fromFirestore(doc.id, doc.data()!);
   }
 }
-

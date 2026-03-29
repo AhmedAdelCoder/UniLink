@@ -123,7 +123,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (user == null) {
       throw fb.FirebaseAuthException(
         code: 'user-not-logged-in',
-        message: 'No user is currently logged in is ok',
+        message: 'No user is currently logged in',
       );
     }
 

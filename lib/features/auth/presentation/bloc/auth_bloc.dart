@@ -34,6 +34,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
+  // =========================
+  // تحقق من حالة المستخدم الحالي
+  // =========================
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
@@ -60,6 +63,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  // =========================
+  // تسجيل الدخول
+  // =========================
   Future<void> _onLoginRequested(
     AuthLoginRequested event,
     Emitter<AuthState> emit,
@@ -67,10 +73,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
 
     final result = await login(
-      LoginParams(
-        email: event.email,
-        password: event.password,
-      ),
+      LoginParams(email: event.email, password: event.password),
     );
 
     result.fold(
@@ -82,7 +85,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated,
+          status: AuthStatus.authenticated, // بعد login مباشرة
           user: user,
           errorMessage: null,
         ),
@@ -90,6 +93,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  // =========================
+  // التسجيل
+  // =========================
   Future<void> _onRegisterRequested(
     AuthRegisterRequested event,
     Emitter<AuthState> emit,
@@ -114,7 +120,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated,
+          status: AuthStatus.authenticated, // ✅ بدل success
           user: user,
           errorMessage: null,
         ),
@@ -122,15 +128,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  // =========================
+  // إعادة تعيين كلمة المرور
+  // =========================
   Future<void> _onResetPasswordRequested(
     AuthResetPasswordRequested event,
     Emitter<AuthState> emit,
   ) async {
     emit(state.copyWith(status: AuthStatus.loading, errorMessage: null));
 
-    final result = await resetPassword(
-      ResetPasswordParams(event.email),
-    );
+    final result = await resetPassword(ResetPasswordParams(event.email));
 
     result.fold(
       (failure) => emit(
@@ -148,6 +155,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  // =========================
+  // تسجيل الخروج
+  // =========================
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
@@ -173,6 +183,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  // =========================
+  // تحويل الـ Failure لرسالة
+  // =========================
   String _mapFailureToMessage(Failure failure) {
     return failure.message;
   }

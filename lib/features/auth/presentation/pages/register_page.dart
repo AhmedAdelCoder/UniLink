@@ -67,19 +67,15 @@ class _RegisterPageState extends State<RegisterPage> {
                   }
 
                   /// ✅ لو نجح
-                  if (state.status == AuthStatus.authenticated) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Account Created Successfully"),
-                      ),
-                    );
-                    await sendWelcomeEmail(
-                      state.user?.email ?? _emailController.text.trim(),
-                      state.user?.fullName ?? _nameController.text.trim(),
-                    );
-
-                    Navigator.pop(context); // يرجع لل login
-                  }
+/// ✅ لو نجح
+                if (state.status == AuthStatus.success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Account Created Successfully"),
+                                      ),
+                                    );
+                                  
+                                  }
                 },
                 builder: (context, state) {
                   final isLoading = state.status == AuthStatus.loading;

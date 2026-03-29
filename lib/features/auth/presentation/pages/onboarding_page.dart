@@ -57,11 +57,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
-                  'assets/images/unilink_logo.png',
+                  'assets/images/logo.png',
                   height: 120,
                   errorBuilder: (context, error, stackTrace) => const Icon(
                     Icons.link_rounded,
-                    size: 120,
+                    size: 200,
                     color: Colors.white,
                   ),
                 ),

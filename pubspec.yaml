@@ -48,6 +48,7 @@ flutter:
 
   assets:
     - assets/images/unilink_logo.png
+    - assets/images/logo.png
 
 flutter_icons:
   android: true

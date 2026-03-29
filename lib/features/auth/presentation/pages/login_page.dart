@@ -49,7 +49,6 @@ class _LoginPageState extends State<LoginPage> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: BlocConsumer<AuthBloc, AuthState>(
                 listener: (context, state) {
-                  // ❌ لو في error
                   if (state.status == AuthStatus.failure) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -60,14 +59,10 @@ class _LoginPageState extends State<LoginPage> {
                     );
                   }
 
-                  // ✅ لو نجح
                   if (state.status == AuthStatus.success) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Login Success")),
                     );
-
-                    // تقدر تنقله لصفحة تانية هنا
-                    // Navigator.pushReplacementNamed(context, '/home');
                   }
                 },
                 builder: (context, state) {
@@ -76,24 +71,42 @@ class _LoginPageState extends State<LoginPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      /// 🔥 LOGO
+                      Center(
+                        child: Image.asset(
+                          'assets/images/logo.png', 
+                          height: 150,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      /// 🔥 APP NAME
                       const Text(
                         'UniLink',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
                       Text(
                         'Connect students and recruiters',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
+
                       const SizedBox(height: 32),
 
-                      /// ✅ الكارد
+                      /// 🔥 CARD
                       Card(
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Form(
@@ -103,8 +116,12 @@ class _LoginPageState extends State<LoginPage> {
                                 /// Email
                                 TextFormField(
                                   controller: _emailController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Email',
+                                    prefixIcon: const Icon(Icons.email),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                   keyboardType:
                                       TextInputType.emailAddress,
@@ -117,15 +134,19 @@ class _LoginPageState extends State<LoginPage> {
                                 /// Password
                                 TextFormField(
                                   controller: _passwordController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Password',
+                                    prefixIcon: const Icon(Icons.lock),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                   obscureText: true,
                                   validator:
                                       InputValidators.validatePassword,
                                 ),
 
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
 
                                 /// Forgot password
                                 Align(
@@ -145,25 +166,32 @@ class _LoginPageState extends State<LoginPage> {
                                 /// Login Button
                                 SizedBox(
                                   width: double.infinity,
+                                  height: 50,
                                   child: FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                    ),
                                     onPressed: isLoading
                                         ? null
                                         : _onLoginPressed,
                                     child: isLoading
                                         ? const SizedBox(
-                                            height: 18,
-                                            width: 18,
+                                            height: 20,
+                                            width: 20,
                                             child:
                                                 CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<
-                                                      Color>(
-                                                Colors.white,
-                                              ),
+                                              color: Colors.white,
                                             ),
                                           )
-                                        : const Text('Login'),
+                                        : const Text(
+                                            'Login',
+                                            style:
+                                                TextStyle(fontSize: 16),
+                                          ),
                                   ),
                                 ),
                               ],

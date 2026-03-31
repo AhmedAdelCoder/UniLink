@@ -8,7 +8,7 @@ Future<void> sendWelcomeEmail(String email, String name) async {
     final response = await http.post(
       Uri.parse(
         "https://unilink-two.vercel.app/api/sendemails",
-      ),
+      ),                                    
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "email": email,

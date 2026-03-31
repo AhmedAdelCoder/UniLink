@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   const msg = {
     to: email,
-    from: "unilink713@gmail.com", // لازم يكون Verified في SendGrid
+    from: "unilink713@gmail.com", 
     subject: "Welcome to UniLink 🚀",
     text: `Hi ${name || "there"}, welcome to UniLink!`,
     html: `<h2>Hi ${name || "there"} 👋</h2><p>Welcome to UniLink!</p>`,

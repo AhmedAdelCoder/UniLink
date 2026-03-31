@@ -53,7 +53,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: BlocConsumer<AuthBloc, AuthState>(
-                listener: (context, state) {
+                listener: (context, state) async {
                   if (state.status == AuthStatus.failure) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -63,11 +63,15 @@ class _RegisterPageState extends State<RegisterPage> {
                     );
                   }
 
-                  if (state.status == AuthStatus.success) {
+                  if (state.status == AuthStatus.registerSuccess) {
+                    await  sendWelcomeEmail(
+                      _emailController.text.trim(),
+                      _nameController.text.trim(),
+                    );
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content:
-                            Text("Account Created Successfully 🎉"),
+                        content: Text("Account Created Successfully 🎉"),
                       ),
                     );
                   }

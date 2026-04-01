@@ -1,6 +1,11 @@
+import 'dart:io';
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 import '../../../../core/config/injection_container.dart';
 import '../../../auth/data/models/app_user_model.dart';
@@ -25,6 +30,53 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
+  /// رفع الصورة على Cloudinary
+  Future<String?> uploadImageToCloudinary(File imageFile) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/dthenjea4/image/upload'),
+      );
+      request.fields['upload_preset'] = 'testttt'; // تأكد من الاسم هنا
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      final response = await request.send();
+      final respStr = await response.stream.bytesToString();
+
+      if (response.statusCode == 200) {
+        final jsonResp = json.decode(respStr);
+        return jsonResp['secure_url']; // رابط الصورة النهائي
+      } else {
+        print('Cloudinary upload failed: ${response.statusCode} | $respStr');
+        return null;
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  }
+
+  /// اختيار صورة ورفعها ثم تحديث الرابط في Firebase
+  Future<void> pickAndUploadImage(AppUserModel user) async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    File file = File(pickedFile.path);
+    String? imageUrl = await uploadImageToCloudinary(file);
+
+    if (imageUrl != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.id)
+            .update({'photoUrl': imageUrl});
+        setState(() {}); // إعادة بناء الصفحة لعرض الصورة الجديدة
+      } catch (e) {
+        print('Firestore update error: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final fs = sl<FirebaseFirestore>();
@@ -43,13 +95,13 @@ class _SearchPageState extends State<SearchPage> {
               ),
               suffixIcon: _queryCtrl.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() {
-                          _queryCtrl.clear();
-                        });
-                      },
-                    )
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _queryCtrl.clear();
+                  });
+                },
+              )
                   : null,
             ),
             onChanged: (_) => setState(() {}),
@@ -74,10 +126,10 @@ class _SearchPageState extends State<SearchPage> {
               children: _skillFilters
                   .map(
                     (s) => InputChip(
-                      label: Text(s),
-                      onDeleted: () => setState(() => _skillFilters.remove(s)),
-                    ),
-                  )
+                  label: Text(s),
+                  onDeleted: () => setState(() => _skillFilters.remove(s)),
+                ),
+              )
                   .toList(),
             ),
           ),
@@ -102,17 +154,15 @@ class _SearchPageState extends State<SearchPage> {
                   .map((d) => AppUserModel.fromFirestore(d.id, d.data()))
                   .where((u) => u.id != me)
                   .where((u) {
-                    if (q.isEmpty) return true;
-                    return u.fullName.toLowerCase().contains(q) ||
-                        u.email.toLowerCase().contains(q);
-                  })
+                if (q.isEmpty) return true;
+                return u.fullName.toLowerCase().contains(q) ||
+                    u.email.toLowerCase().contains(q);
+              })
                   .where((u) {
-                    if (_skillFilters.isEmpty) return true;
-                    final set = u.skills.map((e) => e.toLowerCase()).toSet();
-                    return _skillFilters.every(
-                      (f) => set.contains(f.toLowerCase()),
-                    );
-                  })
+                if (_skillFilters.isEmpty) return true;
+                final set = u.skills.map((e) => e.toLowerCase()).toSet();
+                return _skillFilters.every((f) => set.contains(f.toLowerCase()));
+              })
                   .toList();
 
               if (docs.isEmpty) {
@@ -126,16 +176,17 @@ class _SearchPageState extends State<SearchPage> {
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage:
-                            u.photoUrl != null ? NetworkImage(u.photoUrl!) : null,
-                        child: u.photoUrl == null
-                            ? Text(
-                                u.fullName.isNotEmpty
-                                    ? u.fullName[0].toUpperCase()
-                                    : '?',
-                              )
-                            : null,
+                      leading: GestureDetector(
+                        onTap: () => pickAndUploadImage(u),
+                        child: CircleAvatar(
+                          backgroundImage:
+                          u.photoUrl != null ? NetworkImage(u.photoUrl!) : null,
+                          child: u.photoUrl == null
+                              ? Text(u.fullName.isNotEmpty
+                              ? u.fullName[0].toUpperCase()
+                              : '?')
+                              : null,
+                        ),
                       ),
                       title: Text(u.fullName),
                       subtitle: Column(
@@ -146,7 +197,8 @@ class _SearchPageState extends State<SearchPage> {
                               spacing: 4,
                               children: u.skills.take(6).map((s) {
                                 return ActionChip(
-                                  label: Text(s, style: const TextStyle(fontSize: 11)),
+                                  label:
+                                  Text(s, style: const TextStyle(fontSize: 11)),
                                   padding: EdgeInsets.zero,
                                   onPressed: () {
                                     setState(() => _skillFilters.add(s));

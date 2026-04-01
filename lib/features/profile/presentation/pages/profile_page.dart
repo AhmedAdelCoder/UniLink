@@ -51,11 +51,11 @@ class ProfilePage extends StatelessWidget {
                             : null,
                         child: user.photoUrl == null
                             ? Text(
-                                user.fullName.isNotEmpty
-                                    ? user.fullName[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(fontSize: 32),
-                              )
+                          user.fullName.isNotEmpty
+                              ? user.fullName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(fontSize: 32),
+                        )
                             : null,
                       ),
                     ),
@@ -115,14 +115,14 @@ class ProfilePage extends StatelessWidget {
                   const Text('Projects',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   ...user.projects.map(
-                    (p) => ListTile(
+                        (p) => ListTile(
                       title: Text(p.title),
                       subtitle: Text(p.description),
                       trailing: p.link != null && p.link!.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.link),
-                              onPressed: () {},
-                            )
+                        icon: const Icon(Icons.link),
+                        onPressed: () {},
+                      )
                           : null,
                     ),
                   ),
@@ -149,6 +149,9 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  // ==========================
+  // دالة اختيار ورفع صورة على Cloudinary
+  // ==========================
   Future<void> _pickAndUploadPhoto(BuildContext context, String uid) async {
     final picker = ImagePicker();
     final x = await picker.pickImage(
@@ -173,6 +176,9 @@ class ProfilePage extends StatelessWidget {
     }
   }
 
+  // ==========================
+  // دالة فتح Bottom Sheet لتعديل بيانات الملف الشخصي
+  // ==========================
   Future<void> _openEditSheet(BuildContext context, AppUser user) async {
     final nameCtrl = TextEditingController(text: user.fullName);
     final bioCtrl = TextEditingController(text: user.bio);
@@ -274,11 +280,11 @@ class ProfilePage extends StatelessWidget {
                         skills: skills,
                         projects: projects,
                         githubUrl:
-                            ghCtrl.text.trim().isEmpty ? null : ghCtrl.text.trim(),
+                        ghCtrl.text.trim().isEmpty ? null : ghCtrl.text.trim(),
                         linkedinUrl:
-                            liCtrl.text.trim().isEmpty ? null : liCtrl.text.trim(),
+                        liCtrl.text.trim().isEmpty ? null : liCtrl.text.trim(),
                         websiteUrl:
-                            webCtrl.text.trim().isEmpty ? null : webCtrl.text.trim(),
+                        webCtrl.text.trim().isEmpty ? null : webCtrl.text.trim(),
                       );
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (context.mounted) {

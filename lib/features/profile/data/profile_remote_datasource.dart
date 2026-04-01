@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../../../core/services/cloudinary_service.dart';
 import '../../auth/data/models/app_user_model.dart';
 import '../../auth/domain/entities/user_project.dart';
 
@@ -27,15 +27,15 @@ abstract class ProfileRemoteDataSource {
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   ProfileRemoteDataSourceImpl({
     required FirebaseFirestore firestore,
-    required FirebaseStorage storage,
     required fb.FirebaseAuth auth,
+    required CloudinaryService cloudinaryService,
   })  : _firestore = firestore,
-        _storage = storage,
-        _auth = auth;
+        _auth = auth,
+        _cloudinaryService = cloudinaryService;
 
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
   final fb.FirebaseAuth _auth;
+  final CloudinaryService _cloudinaryService;
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
@@ -72,11 +72,11 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       'projects': projects
           .map(
             (p) => {
-              'title': p.title,
-              'description': p.description,
-              'link': p.link,
-            },
-          )
+          'title': p.title,
+          'description': p.description,
+          'link': p.link,
+        },
+      )
           .toList(),
       'githubUrl': githubUrl,
       'linkedinUrl': linkedinUrl,
@@ -91,13 +91,19 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     if (user == null || user.uid != uid) {
       throw StateError('Not authenticated');
     }
-    final ref = _storage.ref().child('profile_pictures/$uid.jpg');
-    await ref.putFile(file);
-    final url = await ref.getDownloadURL();
+
+    // 🚀 رفع الصورة على Cloudinary
+    final uploadedUrl = await _cloudinaryService.uploadImage(file);
+    if (uploadedUrl == null) {
+      throw StateError('Failed to upload image to Cloudinary');
+    }
+
+    // تحديث رابط الصورة في Firestore
     await _users.doc(uid).update({
-      'photoUrl': url,
+      'photoUrl': uploadedUrl,
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    return url;
+
+    return uploadedUrl;
   }
 }

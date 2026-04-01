@@ -52,7 +52,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Check your email for reset link 📩',
+                          'Check your email for reset link  in📩',
                         ),
                       ),
                     );

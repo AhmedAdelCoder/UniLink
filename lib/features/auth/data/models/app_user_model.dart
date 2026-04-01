@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../domain/entities/app_user.dart';
 import '../../domain/entities/user_project.dart';
+import '../../../../core/services/cloudinary_service.dart';
 
 class AppUserModel extends AppUser {
   const AppUserModel({
@@ -20,35 +21,41 @@ class AppUserModel extends AppUser {
     super.lastSeen,
   });
 
+  // ==========================
+  // تحويل البيانات الخام لقائمة مشاريع
+  // ==========================
   static List<UserProject> _parseProjects(dynamic raw) {
     if (raw is! List) return const [];
     return raw
         .map((e) {
-          if (e is Map<String, dynamic>) {
-            return UserProject(
-              title: (e['title'] as String?) ?? '',
-              description: (e['description'] as String?) ?? '',
-              link: e['link'] as String?,
-            );
-          }
-          return null;
-        })
+      if (e is Map<String, dynamic>) {
+        return UserProject(
+          title: (e['title'] as String?) ?? '',
+          description: (e['description'] as String?) ?? '',
+          link: e['link'] as String?,
+        );
+      }
+      return null;
+    })
         .whereType<UserProject>()
         .toList();
   }
 
+  // ==========================
+  // تحويل البيانات الخام لقائمة مهارات
+  // ==========================
   static List<String> _parseSkills(dynamic raw) {
     if (raw is! List) return const [];
     return raw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
   }
 
-  factory AppUserModel.fromFirestore(
-    String id,
-    Map<String, dynamic> data,
-  ) {
+  // ==========================
+  // إنشاء نموذج المستخدم من Firestore
+  // ==========================
+  factory AppUserModel.fromFirestore(String id, Map<String, dynamic> data) {
     final roleString = (data['role'] as String?) ?? 'student';
     final role =
-        roleString == 'recruiter' ? UserRole.recruiter : UserRole.student;
+    roleString == 'recruiter' ? UserRole.recruiter : UserRole.student;
 
     DateTime? lastSeen;
     final ls = data['lastSeen'];
@@ -75,7 +82,9 @@ class AppUserModel extends AppUser {
     );
   }
 
-  /// New user document (register / first login).
+  // ==========================
+  // تحويل المستخدم الجديد إلى خريطة Firestore
+  // ==========================
   Map<String, dynamic> toFirestoreNewUser() {
     return {
       'email': email,
@@ -87,11 +96,11 @@ class AppUserModel extends AppUser {
       'projects': projects
           .map(
             (p) => {
-              'title': p.title,
-              'description': p.description,
-              'link': p.link,
-            },
-          )
+          'title': p.title,
+          'description': p.description,
+          'link': p.link,
+        },
+      )
           .toList(),
       'githubUrl': githubUrl,
       'linkedinUrl': linkedinUrl,
@@ -101,5 +110,35 @@ class AppUserModel extends AppUser {
       'createdAt': DateTime.now().toUtc(),
       'updatedAt': DateTime.now().toUtc(),
     };
+  }
+
+  // ==========================
+  // 🚀 دالة جديدة لرفع صورة المستخدم على Cloudinary وتحديث الـ photoUrl
+  // ==========================
+  Future<AppUserModel> updatePhoto(File imageFile) async {
+    final cloudinary = CloudinaryService();
+    final uploadedUrl = await cloudinary.uploadImage(imageFile);
+
+    if (uploadedUrl != null) {
+      // إرجاع نسخة جديدة من المستخدم مع رابط الصورة الجديد
+      return AppUserModel(
+        id: id,
+        email: email,
+        fullName: fullName,
+        role: role,
+        photoUrl: uploadedUrl,
+        bio: bio,
+        skills: skills,
+        projects: projects,
+        githubUrl: githubUrl,
+        linkedinUrl: linkedinUrl,
+        websiteUrl: websiteUrl,
+        isOnline: isOnline,
+        lastSeen: lastSeen,
+      );
+    }
+
+    // لو الفشل، يرجع نفسه
+    return this;
   }
 }

@@ -1,3 +1,5 @@
+// lib/core/config/injection_container.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -24,6 +26,7 @@ import '../../features/posts/domain/usecases/like_post.dart';
 import '../../features/posts/domain/usecases/unlike_post.dart';
 import '../../features/posts/presentation/bloc/feed_bloc.dart';
 import '../../features/profile/data/profile_remote_datasource.dart';
+import '../../core/services/cloudinary_service.dart';
 
 final sl = GetIt.instance;
 
@@ -33,29 +36,35 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
+  // Services
+  sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
+
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(
+        () => AuthRemoteDataSourceImpl(
       firebaseAuth: sl<fb.FirebaseAuth>(),
       firestore: sl<FirebaseFirestore>(),
     ),
   );
+
   sl.registerLazySingleton<PostsRemoteDataSource>(
-    () => PostsRemoteDataSourceImpl(
+        () => PostsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
-      storage: sl<FirebaseStorage>(),
+      storage: sl<FirebaseStorage>(), // ← تم إضافته
       firebaseAuth: sl<fb.FirebaseAuth>(),
     ),
   );
+
   sl.registerLazySingleton<ProfileRemoteDataSource>(
-    () => ProfileRemoteDataSourceImpl(
+        () => ProfileRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
-      storage: sl<FirebaseStorage>(),
       auth: sl<fb.FirebaseAuth>(),
+      cloudinaryService: sl<CloudinaryService>(),
     ),
   );
+
   sl.registerLazySingleton<ChatRemoteDataSource>(
-    () => ChatRemoteDataSourceImpl(
+        () => ChatRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
       auth: sl<fb.FirebaseAuth>(),
     ),
@@ -63,10 +72,11 @@ Future<void> initDependencies() async {
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: sl<AuthRemoteDataSource>()),
+        () => AuthRepositoryImpl(remoteDataSource: sl<AuthRemoteDataSource>()),
   );
+
   sl.registerLazySingleton<PostRepository>(
-    () => PostRepositoryImpl(remoteDataSource: sl<PostsRemoteDataSource>()),
+        () => PostRepositoryImpl(remoteDataSource: sl<PostsRemoteDataSource>()),
   );
 
   // Use cases
@@ -84,7 +94,7 @@ Future<void> initDependencies() async {
 
   // Blocs
   sl.registerFactory(
-    () => AuthBloc(
+        () => AuthBloc(
       login: sl<Login>(),
       register: sl<Register>(),
       resetPassword: sl<ResetPassword>(),
@@ -92,8 +102,9 @@ Future<void> initDependencies() async {
       logout: sl<Logout>(),
     ),
   );
+
   sl.registerFactory(
-    () => FeedBloc(
+        () => FeedBloc(
       getFeedPage: sl<GetFeedPage>(),
       createPost: sl<CreatePost>(),
       likePost: sl<LikePost>(),
@@ -103,4 +114,3 @@ Future<void> initDependencies() async {
     ),
   );
 }
-

@@ -12,6 +12,7 @@ import '../../../auth/data/models/app_user_model.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/data/chat_remote_datasource.dart';
 import '../../../chat/presentation/pages/chat_detail_page.dart';
+import "../../../profile/presentation/pages/profile_page.dart";
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -38,7 +39,9 @@ class _SearchPageState extends State<SearchPage> {
         Uri.parse('https://api.cloudinary.com/v1_1/dthenjea4/image/upload'),
       );
       request.fields['upload_preset'] = 'testttt'; // تأكد من الاسم هنا
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
 
       final response = await request.send();
       final respStr = await response.stream.bytesToString();
@@ -58,7 +61,9 @@ class _SearchPageState extends State<SearchPage> {
 
   /// اختيار صورة ورفعها ثم تحديث الرابط في Firebase
   Future<void> pickAndUploadImage(AppUserModel user) async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile == null) return;
 
     File file = File(pickedFile.path);
@@ -95,13 +100,13 @@ class _SearchPageState extends State<SearchPage> {
               ),
               suffixIcon: _queryCtrl.text.isNotEmpty
                   ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  setState(() {
-                    _queryCtrl.clear();
-                  });
-                },
-              )
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _queryCtrl.clear();
+                        });
+                      },
+                    )
                   : null,
             ),
             onChanged: (_) => setState(() {}),
@@ -126,10 +131,10 @@ class _SearchPageState extends State<SearchPage> {
               children: _skillFilters
                   .map(
                     (s) => InputChip(
-                  label: Text(s),
-                  onDeleted: () => setState(() => _skillFilters.remove(s)),
-                ),
-              )
+                      label: Text(s),
+                      onDeleted: () => setState(() => _skillFilters.remove(s)),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -154,19 +159,23 @@ class _SearchPageState extends State<SearchPage> {
                   .map((d) => AppUserModel.fromFirestore(d.id, d.data()))
                   .where((u) => u.id != me)
                   .where((u) {
-                if (q.isEmpty) return true;
-                return u.fullName.toLowerCase().contains(q) ||
-                    u.email.toLowerCase().contains(q);
-              })
+                    if (q.isEmpty) return true;
+                    return u.fullName.toLowerCase().contains(q) ||
+                        u.email.toLowerCase().contains(q);
+                  })
                   .where((u) {
-                if (_skillFilters.isEmpty) return true;
-                final set = u.skills.map((e) => e.toLowerCase()).toSet();
-                return _skillFilters.every((f) => set.contains(f.toLowerCase()));
-              })
+                    if (_skillFilters.isEmpty) return true;
+                    final set = u.skills.map((e) => e.toLowerCase()).toSet();
+                    return _skillFilters.every(
+                      (f) => set.contains(f.toLowerCase()),
+                    );
+                  })
                   .toList();
 
               if (docs.isEmpty) {
-                return const Center(child: Text('No students match your search'));
+                return const Center(
+                  child: Text('No students match your search'),
+                );
               }
 
               return ListView.builder(
@@ -174,17 +183,32 @@ class _SearchPageState extends State<SearchPage> {
                 itemBuilder: (context, i) {
                   final u = docs[i];
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     child: ListTile(
+                      onTap: () {
+                        print("Clicked user: ${u.id}");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProfilePage(userId: u.id),
+                          ),
+                        );
+                      },
                       leading: GestureDetector(
                         onTap: () => pickAndUploadImage(u),
                         child: CircleAvatar(
-                          backgroundImage:
-                          u.photoUrl != null ? NetworkImage(u.photoUrl!) : null,
+                          backgroundImage: u.photoUrl != null
+                              ? NetworkImage(u.photoUrl!)
+                              : null,
                           child: u.photoUrl == null
-                              ? Text(u.fullName.isNotEmpty
-                              ? u.fullName[0].toUpperCase()
-                              : '?')
+                              ? Text(
+                                  u.fullName.isNotEmpty
+                                      ? u.fullName[0].toUpperCase()
+                                      : '?',
+                                )
                               : null,
                         ),
                       ),
@@ -197,8 +221,10 @@ class _SearchPageState extends State<SearchPage> {
                               spacing: 4,
                               children: u.skills.take(6).map((s) {
                                 return ActionChip(
-                                  label:
-                                  Text(s, style: const TextStyle(fontSize: 11)),
+                                  label: Text(
+                                    s,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
                                   padding: EdgeInsets.zero,
                                   onPressed: () {
                                     setState(() => _skillFilters.add(s));

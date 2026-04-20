@@ -608,11 +608,20 @@ class ProfilePage extends StatelessWidget {
   }
 
   // ================= CHAT =================
-  Future<void> _openChat(BuildContext context, AppUserModel other) async {
-    final auth = context.read<AuthBloc>().state.user;
-    if (auth == null) return;
+ Future<void> _openChat(BuildContext context, AppUserModel other) async {
+  final auth = context.read<AuthBloc>().state.user;
+  if (auth == null) return;
 
-    final chat = sl<ChatRemoteDataSource>();
+  final chat = sl<ChatRemoteDataSource>();
+
+  try {
+    // منع فتح شات مع نفسك
+    if (auth.id == other.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can't message yourself")),
+      );
+      return;
+    }
 
     await chat.ensureThread(
       myUid: auth.id,
@@ -625,7 +634,7 @@ class ProfilePage extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    await Navigator.of(context).pushNamed(
+    Navigator.of(context).pushNamed(
       ChatDetailPage.routeName,
       arguments: ChatDetailArgs(
         threadId: threadId,
@@ -633,7 +642,14 @@ class ProfilePage extends StatelessWidget {
         otherUserName: other.fullName,
       ),
     );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to open chat: $e")),
+      );
+    }
   }
+}
 
   // ================= EDIT =================
   Future<void> _openEditSheet(BuildContext context, AppUser user) async {

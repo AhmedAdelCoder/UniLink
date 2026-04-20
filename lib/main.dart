@@ -14,6 +14,9 @@ import 'features/auth/presentation/pages/onboarding_page.dart';
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/home/presentation/home_shell.dart';
 
+// ✅ أضف ده
+import 'features/chat/presentation/pages/chat_detail_page.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -75,11 +78,15 @@ class _UniLinkAppState extends State<UniLinkApp> {
           initialRoute: SplashScreen.routeName,
           routes: {
             SplashScreen.routeName: (context) => const SplashScreen(),
-            OnboardingPage.routeName: (context) => const OnboardingPage(), // ✅ أضفنا
+            OnboardingPage.routeName: (context) => const OnboardingPage(),
             LoginPage.routeName: (context) => const LoginPage(),
             RegisterPage.routeName: (context) => const RegisterPage(),
             ResetPasswordPage.routeName: (context) => const ResetPasswordPage(),
-            HomeShell.routeName: (context) => HomeShell(onToggleTheme: _toggleTheme),
+            HomeShell.routeName: (context) =>
+                HomeShell(onToggleTheme: _toggleTheme),
+
+            // ✅ أهم إضافة
+            ChatDetailPage.routeName: (context) => const ChatDetailPage(),
           },
         ),
       ),

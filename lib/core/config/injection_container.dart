@@ -15,6 +15,7 @@ import '../../features/auth/domain/usecases/register.dart';
 import '../../features/auth/domain/usecases/reset_password.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/chat/data/chat_remote_datasource.dart';
+import '../../features/connections/data/connections_remote_datasource.dart';
 import '../../features/posts/data/datasources/posts_remote_datasource.dart';
 import '../../features/posts/data/repositories/post_repository_impl.dart';
 import '../../features/posts/domain/repositories/post_repository.dart';
@@ -52,6 +53,7 @@ Future<void> initDependencies() async {
       firestore: sl<FirebaseFirestore>(),
       storage: sl<FirebaseStorage>(), // ← تم إضافته
       firebaseAuth: sl<fb.FirebaseAuth>(),
+      connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
     ),
   );
 
@@ -67,6 +69,13 @@ Future<void> initDependencies() async {
         () => ChatRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
       auth: sl<fb.FirebaseAuth>(),
+      connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
+    ),
+  );
+
+  sl.registerLazySingleton<ConnectionsRemoteDataSource>(
+        () => ConnectionsRemoteDataSourceImpl(
+      firestore: sl<FirebaseFirestore>(),
     ),
   );
 

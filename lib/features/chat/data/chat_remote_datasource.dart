@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
+import '../../connections/data/connections_remote_datasource.dart';
+
 class ChatThreadModel {
   ChatThreadModel({
     required this.id,
@@ -102,11 +104,14 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   ChatRemoteDataSourceImpl({
     required FirebaseFirestore firestore,
     required fb.FirebaseAuth auth,
+    required ConnectionsRemoteDataSource connectionsRemoteDataSource,
   })  : _firestore = firestore,
-        _auth = auth;
+        _auth = auth,
+        _connectionsRemoteDataSource = connectionsRemoteDataSource;
 
   final FirebaseFirestore _firestore;
   final fb.FirebaseAuth _auth;
+  final ConnectionsRemoteDataSource _connectionsRemoteDataSource;
 
   CollectionReference<Map<String, dynamic>> get _chats =>
       _firestore.collection('chats');
@@ -124,6 +129,14 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required String myName,
     required String otherName,
   }) async {
+    final connected = await _connectionsRemoteDataSource.areConnected(
+      myUid: myUid,
+      otherUid: otherUid,
+    );
+    if (!connected) {
+      throw StateError('You can only chat with connected users');
+    }
+
     final id = threadIdFor(myUid, otherUid);
     await _chats.doc(id).set(
       {
@@ -183,6 +196,28 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     }
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
+
+    final threadSnap = await _chats.doc(threadId).get();
+    final participantIds =
+        (threadSnap.data()?['participantIds'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const <String>[];
+    final otherUid = participantIds.firstWhere(
+      (id) => id != user.uid,
+      orElse: () => '',
+    );
+    if (otherUid.isEmpty) {
+      throw StateError('Invalid chat thread');
+    }
+
+    final connected = await _connectionsRemoteDataSource.areConnected(
+      myUid: user.uid,
+      otherUid: otherUid,
+    );
+    if (!connected) {
+      throw StateError('Messaging is available only for connections');
+    }
 
     final msgRef =
         _chats.doc(threadId).collection('messages').doc();

@@ -384,6 +384,7 @@ import '../../../auth/domain/entities/user_project.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/data/chat_remote_datasource.dart';
 import '../../../chat/presentation/pages/chat_detail_page.dart';
+import '../../../connections/data/connections_remote_datasource.dart';
 import '../../data/profile_remote_datasource.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -613,11 +614,7 @@ class ProfilePage extends StatelessWidget {
                           const SizedBox(height: 20),
                           if (isMe) _buildEditActions(context, user),
                           if (!isMe)
-                            FilledButton.icon(
-                              onPressed: () => _openChat(context, user),
-                              icon: const Icon(Icons.message_outlined),
-                              label: const Text('Message'),
-                            ),
+                            _buildConnectionAwareAction(context, user),
                         ],
                       ),
                     ),
@@ -742,6 +739,49 @@ class ProfilePage extends StatelessWidget {
           label: const Text('Log out'),
         ),
       ],
+    );
+  }
+
+  Widget _buildConnectionAwareAction(BuildContext context, AppUserModel other) {
+    final me = context.read<AuthBloc>().state.user;
+    if (me == null) return const SizedBox.shrink();
+    final connections = sl<ConnectionsRemoteDataSource>();
+    return StreamBuilder<ConnectionStatus>(
+      stream: connections.watchStatus(myUid: me.id, otherUid: other.id),
+      builder: (context, snapshot) {
+        final status = snapshot.data ?? ConnectionStatus.none;
+        switch (status) {
+          case ConnectionStatus.connected:
+            return FilledButton.icon(
+              onPressed: () => _openChat(context, other),
+              icon: const Icon(Icons.message_outlined),
+              label: const Text('Message'),
+            );
+          case ConnectionStatus.incomingPending:
+            return FilledButton(
+              onPressed: () async {
+                await connections.acceptRequest(myUid: me.id, otherUid: other.id);
+              },
+              child: const Text('Accept Connection'),
+            );
+          case ConnectionStatus.outgoingPending:
+            return const Chip(label: Text('Connection request pending'));
+          case ConnectionStatus.none:
+            return FilledButton.tonal(
+              onPressed: () async {
+                await connections.sendRequest(
+                  myUid: me.id,
+                  myName: me.fullName,
+                  myPhotoUrl: me.photoUrl,
+                  otherUid: other.id,
+                  otherName: other.fullName,
+                  otherPhotoUrl: other.photoUrl,
+                );
+              },
+              child: const Text('Connect'),
+            );
+        }
+      },
     );
   }
 

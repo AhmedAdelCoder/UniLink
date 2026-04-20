@@ -1,18 +1,13 @@
-import 'dart:io';
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 
 import '../../../../core/config/injection_container.dart';
 import '../../../auth/data/models/app_user_model.dart';
+import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../chat/data/chat_remote_datasource.dart';
-import '../../../chat/presentation/pages/chat_detail_page.dart';
-import "../../../profile/presentation/pages/profile_page.dart";
+import '../../../connections/data/connections_remote_datasource.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -31,60 +26,12 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  /// رفع الصورة على Cloudinary
-  Future<String?> uploadImageToCloudinary(File imageFile) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://api.cloudinary.com/v1_1/dthenjea4/image/upload'),
-      );
-      request.fields['upload_preset'] = 'testttt'; // تأكد من الاسم هنا
-      request.files.add(
-        await http.MultipartFile.fromPath('file', imageFile.path),
-      );
-
-      final response = await request.send();
-      final respStr = await response.stream.bytesToString();
-
-      if (response.statusCode == 200) {
-        final jsonResp = json.decode(respStr);
-        return jsonResp['secure_url']; // رابط الصورة النهائي
-      } else {
-        print('Cloudinary upload failed: ${response.statusCode} | $respStr');
-        return null;
-      }
-    } catch (e) {
-      print('Error uploading image: $e');
-      return null;
-    }
-  }
-
-  /// اختيار صورة ورفعها ثم تحديث الرابط في Firebase
-  Future<void> pickAndUploadImage(AppUserModel user) async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile == null) return;
-
-    File file = File(pickedFile.path);
-    String? imageUrl = await uploadImageToCloudinary(file);
-
-    if (imageUrl != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.id)
-            .update({'photoUrl': imageUrl});
-        setState(() {}); // إعادة بناء الصفحة لعرض الصورة الجديدة
-      } catch (e) {
-        print('Firestore update error: $e');
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final fs = sl<FirebaseFirestore>();
+    final connections = sl<ConnectionsRemoteDataSource>();
+    final auth = context.watch<AuthBloc>().state.user;
+    final myId = auth?.id;
 
     return Column(
       children: [
@@ -93,7 +40,7 @@ class _SearchPageState extends State<SearchPage> {
           child: TextField(
             controller: _queryCtrl,
             decoration: InputDecoration(
-              hintText: 'Search students by name…',
+              hintText: 'Search users by name...',
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -102,9 +49,7 @@ class _SearchPageState extends State<SearchPage> {
                   ? IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: () {
-                        setState(() {
-                          _queryCtrl.clear();
-                        });
+                        setState(_queryCtrl.clear);
                       },
                     )
                   : null,
@@ -140,11 +85,7 @@ class _SearchPageState extends State<SearchPage> {
           ),
         Expanded(
           child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: fs
-                .collection('users')
-                .where('role', isEqualTo: 'student')
-                .limit(100)
-                .snapshots(),
+            stream: fs.collection('users').limit(100).snapshots(),
             builder: (context, snap) {
               if (snap.hasError) {
                 return Center(child: Text('Error: ${snap.error}'));
@@ -153,11 +94,10 @@ class _SearchPageState extends State<SearchPage> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final me = context.read<AuthBloc>().state.user?.id;
               final q = _queryCtrl.text.trim().toLowerCase();
               final docs = snap.data!.docs
                   .map((d) => AppUserModel.fromFirestore(d.id, d.data()))
-                  .where((u) => u.id != me)
+                  .where((u) => u.id != myId)
                   .where((u) {
                     if (q.isEmpty) return true;
                     return u.fullName.toLowerCase().contains(q) ||
@@ -173,71 +113,82 @@ class _SearchPageState extends State<SearchPage> {
                   .toList();
 
               if (docs.isEmpty) {
-                return const Center(
-                  child: Text('No students match your search'),
-                );
+                return const Center(child: Text('No users match your search'));
               }
 
               return ListView.builder(
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
-                  final u = docs[i];
+                  final user = docs[i];
                   return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                     ),
                     child: ListTile(
                       onTap: () {
-                        print("Clicked user: ${u.id}");
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ProfilePage(userId: u.id),
+                            builder: (_) => ProfilePage(userId: user.id),
                           ),
                         );
                       },
-                      leading: GestureDetector(
-                        onTap: () => pickAndUploadImage(u),
-                        child: CircleAvatar(
-                          backgroundImage: u.photoUrl != null
-                              ? NetworkImage(u.photoUrl!)
-                              : null,
-                          child: u.photoUrl == null
-                              ? Text(
-                                  u.fullName.isNotEmpty
-                                      ? u.fullName[0].toUpperCase()
-                                      : '?',
-                                )
-                              : null,
-                        ),
+                      leading: CircleAvatar(
+                        backgroundImage: user.photoUrl != null
+                            ? NetworkImage(user.photoUrl!)
+                            : null,
+                        child: user.photoUrl == null
+                            ? Text(
+                                user.fullName.isNotEmpty
+                                    ? user.fullName[0].toUpperCase()
+                                    : '?',
+                              )
+                            : null,
                       ),
-                      title: Text(u.fullName),
+                      title: Text(user.fullName),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (u.skills.isNotEmpty)
-                            Wrap(
-                              spacing: 4,
-                              children: u.skills.take(6).map((s) {
-                                return ActionChip(
-                                  label: Text(
-                                    s,
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  onPressed: () {
-                                    setState(() => _skillFilters.add(s));
-                                  },
-                                );
-                              }).toList(),
+                          if (user.bio.trim().isNotEmpty)
+                            Text(
+                              user.bio,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          if (user.skills.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Wrap(
+                                spacing: 4,
+                                children: user.skills.take(4).map((s) {
+                                  return ActionChip(
+                                    label: Text(
+                                      s,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () {
+                                      setState(() => _skillFilters.add(s));
+                                    },
+                                  );
+                                }).toList(),
+                              ),
                             ),
                         ],
                       ),
-                      trailing: FilledButton.tonal(
-                        onPressed: () => _openChat(context, u),
-                        child: const Text('Message'),
-                      ),
+                      trailing: myId == null || auth == null
+                          ? null
+                          : _ConnectionActionButton(
+                              myUser: auth,
+                              otherUser: user,
+                              connections: connections,
+                            ),
                     ),
                   );
                 },
@@ -248,27 +199,59 @@ class _SearchPageState extends State<SearchPage> {
       ],
     );
   }
+}
 
-  Future<void> _openChat(BuildContext context, AppUserModel other) async {
-    final auth = context.read<AuthBloc>().state.user;
-    if (auth == null) return;
+class _ConnectionActionButton extends StatelessWidget {
+  const _ConnectionActionButton({
+    required this.myUser,
+    required this.otherUser,
+    required this.connections,
+  });
 
-    final chat = sl<ChatRemoteDataSource>();
-    await chat.ensureThread(
-      myUid: auth.id,
-      otherUid: other.id,
-      myName: auth.fullName,
-      otherName: other.fullName,
-    );
-    final threadId = chat.threadIdFor(auth.id, other.id);
-    if (!context.mounted) return;
-    await Navigator.of(context).pushNamed(
-      ChatDetailPage.routeName,
-      arguments: ChatDetailArgs(
-        threadId: threadId,
-        otherUserId: other.id,
-        otherUserName: other.fullName,
+  final AppUser myUser;
+  final AppUserModel otherUser;
+  final ConnectionsRemoteDataSource connections;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<ConnectionStatus>(
+      stream: connections.watchStatus(
+        myUid: myUser.id,
+        otherUid: otherUser.id,
       ),
+      builder: (context, snap) {
+        final status = snap.data ?? ConnectionStatus.none;
+        switch (status) {
+          case ConnectionStatus.connected:
+            return const Chip(label: Text('Connected'));
+          case ConnectionStatus.outgoingPending:
+            return const Chip(label: Text('Pending'));
+          case ConnectionStatus.incomingPending:
+            return FilledButton(
+              onPressed: () async {
+                await connections.acceptRequest(
+                  myUid: myUser.id,
+                  otherUid: otherUser.id,
+                );
+              },
+              child: const Text('Accept'),
+            );
+          case ConnectionStatus.none:
+            return FilledButton.tonal(
+              onPressed: () async {
+                await connections.sendRequest(
+                  myUid: myUser.id,
+                  myName: myUser.fullName,
+                  myPhotoUrl: myUser.photoUrl,
+                  otherUid: otherUser.id,
+                  otherName: otherUser.fullName,
+                  otherPhotoUrl: otherUser.photoUrl,
+                );
+              },
+              child: const Text('Connect'),
+            );
+        }
+      },
     );
   }
 }

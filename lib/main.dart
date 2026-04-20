@@ -6,15 +6,16 @@ import 'firebase_options.dart';
 import 'core/config/injection_container.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/posts/presentation/bloc/feed_bloc.dart'; // ✅ FIXED IMPORT
+
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
 import 'features/auth/presentation/pages/onboarding_page.dart';
 import 'features/auth/presentation/splash_screen.dart';
 import 'features/home/presentation/home_shell.dart';
-
-// ✅ أضف ده
 import 'features/chat/presentation/pages/chat_detail_page.dart';
 
 Future<void> main() async {
@@ -48,8 +49,16 @@ class _UniLinkAppState extends State<UniLinkApp> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthBloc>(
-      create: (_) => sl<AuthBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (_) => sl<AuthBloc>(),
+        ),
+
+        BlocProvider<FeedBloc>(
+          create: (_) => sl<FeedBloc>()..add(FeedLoadInitial()), // ✅ auto load feed
+        ),
+      ],
       child: BlocListener<AuthBloc, AuthState>(
         listenWhen: (previous, current) => previous.status != current.status,
         listener: (context, state) {
@@ -84,8 +93,6 @@ class _UniLinkAppState extends State<UniLinkApp> {
             ResetPasswordPage.routeName: (context) => const ResetPasswordPage(),
             HomeShell.routeName: (context) =>
                 HomeShell(onToggleTheme: _toggleTheme),
-
-            // ✅ أهم إضافة
             ChatDetailPage.routeName: (context) => const ChatDetailPage(),
           },
         ),

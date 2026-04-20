@@ -46,12 +46,13 @@ class _FeedPageState extends State<FeedPage> {
     context.read<FeedBloc>().add(const FeedRefresh());
   }
 
-  void _showCreatePostSheet() {
+  void _showCreatePostSheet({bool openImagePicker = false}) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheetContext) {
         return _CreatePostSheet(
+          openImagePickerOnStart: openImagePicker,
           onPosted: () => Navigator.of(sheetContext).pop(),
         );
       },
@@ -69,6 +70,7 @@ class _FeedPageState extends State<FeedPage> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = context.watch<AuthBloc>().state.user?.id;
+    final authUser = context.watch<AuthBloc>().state.user;
 
     return BlocConsumer<FeedBloc, FeedState>(
       listener: (context, state) {
@@ -83,62 +85,155 @@ class _FeedPageState extends State<FeedPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        return Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: _onRefresh,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.only(bottom: 88),
-                itemCount:
-                    state.posts.length + (state.isLoadingMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= state.posts.length) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  }
+        return RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 24),
+            itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0) + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return _FeedComposerCard(
+                  userName: authUser?.fullName ?? 'You',
+                  userPhotoUrl: authUser?.photoUrl,
+                  onTapComposer: () => _showCreatePostSheet(),
+                  onTapPhoto: () => _showCreatePostSheet(openImagePicker: true),
+                  onTapArticle: () => _showCreatePostSheet(),
+                );
+              }
+              final adjustedIndex = index - 1;
+              if (adjustedIndex >= state.posts.length) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              }
 
-                  final post = state.posts[index];
-                  return _PostCard(
-                    post: post,
-                    currentUserId: currentUserId,
-                    onLike: () {
-                      context.read<FeedBloc>().add(FeedToggleLike(post.id));
-                    },
-                    onComment: () => _showComments(post),
-                    onDelete: () {
-                      context
-                          .read<FeedBloc>()
-                          .add(FeedDeletePost(post.id));
-                    },
-                  );
+              final post = state.posts[adjustedIndex];
+              return _PostCard(
+                post: post,
+                currentUserId: currentUserId,
+                onLike: () {
+                  context.read<FeedBloc>().add(FeedToggleLike(post.id));
                 },
-              ),
-            ),
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton.extended(
-                onPressed: _showCreatePostSheet,
-                icon: const Icon(Icons.edit),
-                label: const Text('Post'),
-              ),
-            ),
-          ],
+                onComment: () => _showComments(post),
+                onDelete: () {
+                  context.read<FeedBloc>().add(FeedDeletePost(post.id));
+                },
+              );
+            },
+          ),
         );
       },
     );
   }
 }
 
+class _FeedComposerCard extends StatelessWidget {
+  const _FeedComposerCard({
+    required this.userName,
+    required this.userPhotoUrl,
+    required this.onTapComposer,
+    required this.onTapPhoto,
+    required this.onTapArticle,
+  });
+
+  final String userName;
+  final String? userPhotoUrl;
+  final VoidCallback onTapComposer;
+  final VoidCallback onTapPhoto;
+  final VoidCallback onTapArticle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: userPhotoUrl != null
+                      ? CachedNetworkImageProvider(userPhotoUrl!)
+                      : null,
+                  child: userPhotoUrl == null
+                      ? Text(
+                          userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: onTapComposer,
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Text(
+                        'Start a post...',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+Wrap(
+  spacing: 8,
+  children: [
+    TextButton.icon(
+      onPressed: onTapPhoto,
+      icon: const Icon(Icons.image_outlined, size: 18),
+      label: const Text('Photo'),
+    ),
+    TextButton.icon(
+      onPressed: onTapArticle,
+      icon: const Icon(Icons.edit_note_outlined, size: 18),
+      label: const Text('Write article'),
+    ),
+  ],
+)
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _CreatePostSheet extends StatefulWidget {
-  const _CreatePostSheet({required this.onPosted});
+  const _CreatePostSheet({
+    required this.onPosted,
+    this.openImagePickerOnStart = false,
+  });
 
   final VoidCallback onPosted;
+  final bool openImagePickerOnStart;
 
   @override
   State<_CreatePostSheet> createState() => _CreatePostSheetState();
@@ -147,6 +242,14 @@ class _CreatePostSheet extends StatefulWidget {
 class _CreatePostSheetState extends State<_CreatePostSheet> {
   final _textController = TextEditingController();
   String? _imagePath;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openImagePickerOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _pickImage());
+    }
+  }
+
 
   @override
   void dispose() {
@@ -174,74 +277,96 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       ),
       child: BlocBuilder<FeedBloc, FeedState>(
         builder: (context, state) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade400,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              TextField(
-                controller: _textController,
-                maxLines: 5,
-                minLines: 3,
-                decoration: const InputDecoration(
-                  hintText: "Share what's on your mind...",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_imagePath != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _imagePath = null),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Remove image'),
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade400,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              Row(
-                children: [
-                  TextButton.icon(
-                    onPressed: state.isCreatingPost ? null : _pickImage,
-                    icon: const Icon(Icons.image_outlined),
-                    label: const Text('Photo'),
+                Text(
+                  'Create post',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _textController,
+                  maxLines: 6,
+                  minLines: 4,
+                  decoration: InputDecoration(
+                    hintText: "What's on your mind?",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        width: 1.4,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                   ),
-                  const Spacer(),
-                  FilledButton(
-                    onPressed: state.isCreatingPost
-                        ? null
-                        : () {
-                            final text = _textController.text.trim();
-                            if (text.isEmpty && _imagePath == null) return;
-                            context.read<FeedBloc>().add(
-                                  FeedCreatePost(
-                                    text: text,
-                                    imageFilePath: _imagePath,
-                                  ),
-                                );
-                            widget.onPosted();
-                          },
-                    child: state.isCreatingPost
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text('Post'),
+                ),
+                const SizedBox(height: 8),
+                if (_imagePath != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _imagePath = null),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Remove image'),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: state.isCreatingPost ? null : _pickImage,
+                      icon: const Icon(Icons.image_outlined),
+                      label: const Text('Photo'),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: state.isCreatingPost ? null : () {},
+                      icon: const Icon(Icons.edit_note_outlined),
+                      label: const Text('Write article'),
+                    ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: state.isCreatingPost
+                          ? null
+                          : () {
+                              final text = _textController.text.trim();
+                              if (text.isEmpty && _imagePath == null) return;
+                              context.read<FeedBloc>().add(
+                                    FeedCreatePost(
+                                      text: text,
+                                      imageFilePath: _imagePath,
+                                    ),
+                                  );
+                              widget.onPosted();
+                            },
+                      child: state.isCreatingPost
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text('Post'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -381,11 +506,17 @@ class _PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMine = currentUserId != null && post.authorId == currentUserId;
+    final scheme = Theme.of(context).colorScheme;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -453,7 +584,7 @@ class _PostCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             if (post.text.trim().isNotEmpty) Text(post.text.trim()),
             if (post.imageUrl != null) ...[
               const SizedBox(height: 8),
@@ -487,25 +618,33 @@ class _PostCard extends StatelessWidget {
                     .toList(),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 4),
             Row(
               children: [
-                IconButton(
-                  onPressed: onLike,
-                  icon: Icon(
-                    post.isLikedByMe
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: post.isLikedByMe ? Colors.red : null,
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: onLike,
+                    icon: Icon(
+                      post.isLikedByMe
+                          ? Icons.favorite
+                          : Icons.favorite_outline,
+                      color: post.isLikedByMe ? Colors.redAccent : null,
+                    ),
+                    label: Text('Like ${post.likeCount}'),
                   ),
                 ),
-                Text('${post.likeCount}'),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onComment,
-                  icon: const Icon(Icons.comment_outlined),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: onComment,
+                    icon: Icon(
+                      Icons.mode_comment_outlined,
+                      color: post.commentCount > 0 ? scheme.primary : null,
+                    ),
+                    label: Text('Comment ${post.commentCount}'),
+                  ),
                 ),
-                Text('${post.commentCount}'),
               ],
             ),
           ],

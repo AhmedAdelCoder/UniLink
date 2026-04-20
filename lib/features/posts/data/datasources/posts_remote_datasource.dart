@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../../../connections/data/connections_remote_datasource.dart';
 import '../models/comment_model.dart';
 import '../models/post_model.dart';
 
@@ -23,6 +24,7 @@ abstract class PostsRemoteDataSource {
     int limit = 10,
   });
 
+ Stream<List<PostModel>> getFeedStream();
   Future<PostModel> createPost({
     required String text,
     List<String> skillsTags,
@@ -51,39 +53,82 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   final fb.FirebaseAuth _firebaseAuth;
+  final ConnectionsRemoteDataSource _connectionsRemoteDataSource;
 
   PostsRemoteDataSourceImpl({
     required FirebaseFirestore firestore,
     required FirebaseStorage storage,
     required fb.FirebaseAuth firebaseAuth,
+    required ConnectionsRemoteDataSource connectionsRemoteDataSource,
   })  : _firestore = firestore,
         _storage = storage,
-        _firebaseAuth = firebaseAuth;
+        _firebaseAuth = firebaseAuth,
+        _connectionsRemoteDataSource = connectionsRemoteDataSource;
 
   CollectionReference<Map<String, dynamic>> get _postsCollection =>
       _firestore.collection('posts');
 
+  // 🔥 REAL-TIME STREAM (حطه هنا داخل الكلاس)
+  @override
+  Stream<List<PostModel>> getFeedStream() {
+    return _postsCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => PostModel.fromFirestore(doc))
+              .toList();
+        });
+  }
   @override
   Future<PaginatedPostsResult> getFeedPage({
     DocumentSnapshot<Map<String, dynamic>>? startAfter,
     int limit = 10,
   }) async {
     final currentUser = _firebaseAuth.currentUser;
-    final queryBase = _postsCollection
-        .orderBy('createdAt', descending: true)
-        .limit(limit);
+    if (currentUser == null) {
+      return PaginatedPostsResult(posts: const [], lastDocument: null);
+    }
 
-    final query = startAfter != null
-        ? queryBase.startAfterDocument(startAfter)
-        : queryBase;
+    final allowedAuthorIds = {
+      currentUser.uid,
+      ...(await _connectionsRemoteDataSource.watchConnectedUserIds(
+        currentUser.uid,
+      ).first),
+    };
 
-    final snapshot = await query.get();
+    var cursor = startAfter;
+    final filteredDocs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    DocumentSnapshot<Map<String, dynamic>>? lastDocument;
+    final batchSize = limit * 3;
+
+    while (filteredDocs.length < limit) {
+      final queryBase = _postsCollection
+          .orderBy('createdAt', descending: true)
+          .limit(batchSize);
+      final query =
+          cursor != null ? queryBase.startAfterDocument(cursor) : queryBase;
+      final snapshot = await query.get();
+      if (snapshot.docs.isEmpty) break;
+
+      for (final doc in snapshot.docs) {
+        final authorId = (doc.data()['authorId'] as String?) ?? '';
+        if (allowedAuthorIds.contains(authorId)) {
+          filteredDocs.add(doc);
+          if (filteredDocs.length >= limit) break;
+        }
+      }
+
+      cursor = snapshot.docs.last;
+      lastDocument = cursor;
+      if (snapshot.docs.length < batchSize) break;
+    }
 
     // Per-post like doc reads avoid collectionGroup + whereIn limits (max 10) and index issues.
     final likedPostIds = <String>{};
-    if (currentUser != null && snapshot.docs.isNotEmpty) {
+    if (filteredDocs.isNotEmpty) {
       await Future.wait(
-        snapshot.docs.map((doc) async {
+        filteredDocs.map((doc) async {
           final likeSnap = await _postsCollection
               .doc(doc.id)
               .collection('likes')
@@ -94,7 +139,7 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
       );
     }
 
-    final posts = snapshot.docs
+    final posts = filteredDocs
         .map(
           (doc) => PostModel.fromFirestore(
             doc,
@@ -102,9 +147,6 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
           ),
         )
         .toList();
-
-    final lastDocument =
-        snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
 
     return PaginatedPostsResult(
       posts: posts,
@@ -143,21 +185,21 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
         await _firestore.collection('users').doc(user.uid).get();
     final userData = userDoc.data() ?? {};
 
-    final postData = PostModel(
-      id: postRef.id,
-      authorId: user.uid,
-      authorName: userData['fullName'] as String? ?? '',
-      authorPhotoUrl: userData['photoUrl'] as String?,
-      text: text,
-      imageUrl: imageUrl,
-      skillsTags: skillsTags,
-      likeCount: 0,
-      commentCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    ).toFirestore();
+await postRef.set({
+  'id': postRef.id,
+  'authorId': user.uid,
+  'authorName': userData['fullName'] as String? ?? '',
+  'authorPhotoUrl': userData['photoUrl'] as String?,
+  'text': text,
+  'imageUrl': imageUrl,
+  'skillsTags': skillsTags,
+  'likeCount': 0,
+  'commentCount': 0,
+  'createdAt': FieldValue.serverTimestamp(),
+  'updatedAt': FieldValue.serverTimestamp(),
+});
 
-    await postRef.set(postData);
+
 
     return PostModel(
       id: postRef.id,

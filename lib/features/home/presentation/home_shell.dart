@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/config/injection_container.dart';
 import '../../chat/presentation/pages/chat_list_page.dart';
+import '../../jobs/presentation/bloc/jobs_bloc.dart';
+import '../../jobs/presentation/pages/jobs_page.dart';
 import '../../posts/presentation/bloc/feed_bloc.dart';
 import '../../posts/presentation/pages/feed_page.dart';
 import '../../profile/presentation/pages/profile_page.dart';
@@ -29,6 +31,10 @@ class _HomeShellState extends State<HomeShell> {
     BlocProvider<FeedBloc>(
       create: (_) => sl<FeedBloc>(),
       child: const FeedPage(),
+    ),
+    BlocProvider<JobsBloc>(
+      create: (_) => sl<JobsBloc>(),
+      child: const JobsPage(),
     ),
     const SearchPage(),
     const ChatListPage(),
@@ -64,6 +70,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Feed',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.work_outline),
+            selectedIcon: Icon(Icons.work),
+            label: 'Jobs',
           ),
           NavigationDestination(
             icon: Icon(Icons.search),

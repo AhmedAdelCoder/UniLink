@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'firebase_options.dart';
 
 import 'core/config/injection_container.dart';
@@ -8,7 +10,8 @@ import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 import 'features/auth/presentation/bloc/auth_bloc.dart';
-import 'features/posts/presentation/bloc/feed_bloc.dart'; // ✅ FIXED IMPORT
+import 'features/posts/presentation/bloc/feed_bloc.dart';
+import 'features/jobs/presentation/bloc/jobs_bloc.dart';
 
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/register_page.dart';
@@ -23,7 +26,13 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   await initDependencies();
+
+  // 🔥 Debug UID (safe)
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  debugPrint("🔥 CURRENT USER UID = $uid");
+
   runApp(const UniLinkApp());
 }
 
@@ -54,9 +63,11 @@ class _UniLinkAppState extends State<UniLinkApp> {
         BlocProvider<AuthBloc>(
           create: (_) => sl<AuthBloc>(),
         ),
-
         BlocProvider<FeedBloc>(
-          create: (_) => sl<FeedBloc>()..add(FeedLoadInitial()), // ✅ auto load feed
+          create: (_) => sl<FeedBloc>()..add(FeedLoadInitial()),
+        ),
+        BlocProvider<JobsBloc>(
+          create: (_) => sl<JobsBloc>(),
         ),
       ],
       child: BlocListener<AuthBloc, AuthState>(

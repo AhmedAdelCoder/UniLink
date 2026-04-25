@@ -372,6 +372,7 @@
 import 'dart:io';
 import 'dart:developer';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -385,6 +386,9 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/data/chat_remote_datasource.dart';
 import '../../../chat/presentation/pages/chat_detail_page.dart';
 import '../../../connections/data/connections_remote_datasource.dart';
+import '../../../follows/domain/repositories/follows_repository.dart';
+import '../../../follows/domain/usecases/follow_company.dart';
+import '../../../follows/domain/usecases/unfollow_company.dart';
 import '../../data/profile_remote_datasource.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -614,7 +618,7 @@ class ProfilePage extends StatelessWidget {
                           const SizedBox(height: 20),
                           if (isMe) _buildEditActions(context, user),
                           if (!isMe)
-                            _buildConnectionAwareAction(context, user),
+                            _buildRelationshipAction(context, user),
                         ],
                       ),
                     ),
@@ -742,9 +746,57 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildConnectionAwareAction(BuildContext context, AppUserModel other) {
+  Widget _buildRelationshipAction(BuildContext context, AppUserModel other) {
     final me = context.read<AuthBloc>().state.user;
     if (me == null) return const SizedBox.shrink();
+    if (other.role == UserRole.recruiter && me.role == UserRole.student) {
+      final followsRepository = sl<FollowsRepository>();
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('companies')
+            .where('ownerId', isEqualTo: other.id)
+            .limit(1)
+            .snapshots(),
+        builder: (context, companySnapshot) {
+          final docs = companySnapshot.data?.docs ?? const [];
+          if (docs.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          final companyId = docs.first.id;
+          return StreamBuilder<bool>(
+            stream: followsRepository.watchIsFollowing(
+              studentId: me.id,
+              companyId: companyId,
+            ),
+            builder: (context, snapshot) {
+              final isFollowing = snapshot.data ?? false;
+              return FilledButton.tonalIcon(
+                onPressed: () async {
+                  if (isFollowing) {
+                    await sl<UnfollowCompany>().call(
+                      UnfollowCompanyParams(
+                        studentId: me.id,
+                        companyId: companyId,
+                      ),
+                    );
+                    return;
+                  }
+                  await sl<FollowCompany>().call(
+                    FollowCompanyParams(
+                      studentId: me.id,
+                      companyId: companyId,
+                    ),
+                  );
+                },
+                icon: Icon(isFollowing ? Icons.check : Icons.add),
+                label: Text(isFollowing ? 'Following' : 'Follow Company'),
+              );
+            },
+          );
+        },
+      );
+    }
+
     final connections = sl<ConnectionsRemoteDataSource>();
     return StreamBuilder<ConnectionStatus>(
       stream: connections.watchStatus(myUid: me.id, otherUid: other.id),

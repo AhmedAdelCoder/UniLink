@@ -53,12 +53,16 @@ import '../../core/services/cloudinary_service.dart';
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
-  // 🔥 Firebase
+  // =========================
+  // Firebase
+  // =========================
   sl.registerLazySingleton<fb.FirebaseAuth>(() => fb.FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
-  // 🔥 Services
+  // =========================
+  // Services
+  // =========================
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
 
   // =========================
@@ -66,29 +70,29 @@ Future<void> initDependencies() async {
   // =========================
 
   sl.registerLazySingleton<ConnectionsRemoteDataSource>(
-        () => ConnectionsRemoteDataSourceImpl(
+    () => ConnectionsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
     ),
   );
 
   sl.registerLazySingleton<AuthRemoteDataSource>(
-        () => AuthRemoteDataSourceImpl(
+    () => AuthRemoteDataSourceImpl(
       firebaseAuth: sl<fb.FirebaseAuth>(),
       firestore: sl<FirebaseFirestore>(),
     ),
   );
 
   sl.registerLazySingleton<PostsRemoteDataSource>(
-        () => PostsRemoteDataSourceImpl(
+    () => PostsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
-      storage: sl<FirebaseStorage>(),
       firebaseAuth: sl<fb.FirebaseAuth>(),
       connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
+      cloudinaryService: sl<CloudinaryService>(),
     ),
   );
 
   sl.registerLazySingleton<ProfileRemoteDataSource>(
-        () => ProfileRemoteDataSourceImpl(
+    () => ProfileRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
       auth: sl<fb.FirebaseAuth>(),
       cloudinaryService: sl<CloudinaryService>(),
@@ -96,7 +100,7 @@ Future<void> initDependencies() async {
   );
 
   sl.registerLazySingleton<ChatRemoteDataSource>(
-        () => ChatRemoteDataSourceImpl(
+    () => ChatRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
       auth: sl<fb.FirebaseAuth>(),
       connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
@@ -104,16 +108,18 @@ Future<void> initDependencies() async {
   );
 
   sl.registerLazySingleton<FollowsRemoteDataSource>(
-        () => FollowsRemoteDataSourceImpl(
+    () => FollowsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
     ),
   );
 
+  // 🔥 FIXED HERE (NO null anymore)
   sl.registerLazySingleton<JobsRemoteDataSource>(
-        () => JobsRemoteDataSourceImpl(
+    () => JobsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
-      storage: sl<FirebaseStorage>(),
       firebaseAuth: sl<fb.FirebaseAuth>(),
+      cloudinaryService: sl<CloudinaryService>(),
+      storage: sl<FirebaseStorage>(), // ✅ FIXED
     ),
   );
 
@@ -122,25 +128,25 @@ Future<void> initDependencies() async {
   // =========================
 
   sl.registerLazySingleton<AuthRepository>(
-        () => AuthRepositoryImpl(
+    () => AuthRepositoryImpl(
       remoteDataSource: sl<AuthRemoteDataSource>(),
     ),
   );
 
   sl.registerLazySingleton<PostRepository>(
-        () => PostRepositoryImpl(
+    () => PostRepositoryImpl(
       remoteDataSource: sl<PostsRemoteDataSource>(),
     ),
   );
 
   sl.registerLazySingleton<FollowsRepository>(
-        () => FollowsRepositoryImpl(
+    () => FollowsRepositoryImpl(
       remoteDataSource: sl<FollowsRemoteDataSource>(),
     ),
   );
 
   sl.registerLazySingleton<JobsRepository>(
-        () => JobsRepositoryImpl(
+    () => JobsRepositoryImpl(
       jobsRemoteDataSource: sl<JobsRemoteDataSource>(),
       followsRepository: sl<FollowsRepository>(),
     ),
@@ -179,7 +185,7 @@ Future<void> initDependencies() async {
   // =========================
 
   sl.registerFactory(
-        () => AuthBloc(
+    () => AuthBloc(
       login: sl<Login>(),
       register: sl<Register>(),
       resetPassword: sl<ResetPassword>(),
@@ -189,7 +195,7 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory(
-        () => FeedBloc(
+    () => FeedBloc(
       getFeedPage: sl<GetFeedPage>(),
       createPost: sl<CreatePost>(),
       likePost: sl<LikePost>(),
@@ -199,9 +205,8 @@ Future<void> initDependencies() async {
     ),
   );
 
-  // 🔥 أهم تعديل هنا
   sl.registerFactory(
-        () => JobsBloc(
+    () => JobsBloc(
       streamFollowedJobs: sl<StreamFollowedJobs>(),
       streamCompanyJobs: sl<StreamCompanyJobs>(),
       createJob: sl<CreateJob>(),

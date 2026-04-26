@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  http: ^1.1.0
+
   # State management and utilities
   flutter_bloc: ^9.0.0
   bloc: ^9.0.0

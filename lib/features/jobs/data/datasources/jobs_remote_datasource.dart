@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:unilink/core/services/cloudinary_service.dart';
 
 import '../models/job_application_model.dart';
 import '../models/job_model.dart';
@@ -62,7 +63,7 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
   JobsRemoteDataSourceImpl({
     required FirebaseFirestore firestore,
     required FirebaseStorage storage,
-    required fb.FirebaseAuth firebaseAuth,
+    required fb.FirebaseAuth firebaseAuth, required CloudinaryService cloudinaryService,
   })  : _firestore = firestore,
         _storage = storage,
         _firebaseAuth = firebaseAuth;

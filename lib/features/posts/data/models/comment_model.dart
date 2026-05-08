@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../domain/entities/comment.dart';
 
 class CommentModel extends Comment {
@@ -18,6 +17,7 @@ class CommentModel extends Comment {
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data()!;
+
     return CommentModel(
       id: doc.id,
       postId: postId,
@@ -25,18 +25,19 @@ class CommentModel extends Comment {
       userName: data['userName'] as String? ?? '',
       userPhotoUrl: data['userPhotoUrl'] as String?,
       text: data['text'] as String? ?? '',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt:
+          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toFirestore() {
     return {
       'userId': userId,
+      'authorId': userId, // ✅ FIX: مطلوب عشان الـ Firestore Rule تشتغل عند الحذف
       'userName': userName,
       'userPhotoUrl': userPhotoUrl,
       'text': text,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': FieldValue.serverTimestamp(),
     }..removeWhere((key, value) => value == null);
   }
 }
-

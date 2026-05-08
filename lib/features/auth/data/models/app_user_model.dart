@@ -17,6 +17,7 @@ class AppUserModel extends AppUser {
     super.githubUrl,
     super.linkedinUrl,
     super.websiteUrl,
+    super.cvUrl,
     super.isOnline,
     super.lastSeen,
   });
@@ -26,17 +27,18 @@ class AppUserModel extends AppUser {
   // ==========================
   static List<UserProject> _parseProjects(dynamic raw) {
     if (raw is! List) return const [];
+
     return raw
         .map((e) {
-      if (e is Map<String, dynamic>) {
-        return UserProject(
-          title: (e['title'] as String?) ?? '',
-          description: (e['description'] as String?) ?? '',
-          link: e['link'] as String?,
-        );
-      }
-      return null;
-    })
+          if (e is Map<String, dynamic>) {
+            return UserProject(
+              title: (e['title'] as String?) ?? '',
+              description: (e['description'] as String?) ?? '',
+              link: e['link'] as String?,
+            );
+          }
+          return null;
+        })
         .whereType<UserProject>()
         .toList();
   }
@@ -54,11 +56,15 @@ class AppUserModel extends AppUser {
   // ==========================
   factory AppUserModel.fromFirestore(String id, Map<String, dynamic> data) {
     final roleString = (data['role'] as String?) ?? 'student';
+
     final role =
-    roleString == 'recruiter' ? UserRole.recruiter : UserRole.student;
+        roleString == 'recruiter'
+            ? UserRole.recruiter
+            : UserRole.student;
 
     DateTime? lastSeen;
     final ls = data['lastSeen'];
+
     if (ls is Timestamp) {
       lastSeen = ls.toDate();
     } else if (ls is DateTime) {
@@ -77,13 +83,16 @@ class AppUserModel extends AppUser {
       githubUrl: data['githubUrl'] as String?,
       linkedinUrl: data['linkedinUrl'] as String?,
       websiteUrl: data['websiteUrl'] as String?,
+      cvUrl: data['cvUrl'] as String?,
       isOnline: data['isOnline'] as bool? ?? false,
       lastSeen: lastSeen,
     );
   }
 
+
+
   // ==========================
-  // تحويل المستخدم الجديد إلى خريطة Firestore
+  // تحويل المستخدم الجديد إلى Firestore
   // ==========================
   Map<String, dynamic> toFirestoreNewUser() {
     return {
@@ -93,18 +102,20 @@ class AppUserModel extends AppUser {
       'photoUrl': photoUrl,
       'bio': bio,
       'skills': skills,
-      'projects': projects
-          .map(
-            (p) => {
-          'title': p.title,
-          'description': p.description,
-          'link': p.link,
-        },
-      )
-          .toList(),
+      'projects':
+          projects
+              .map(
+                (p) => {
+                  'title': p.title,
+                  'description': p.description,
+                  'link': p.link,
+                },
+              )
+              .toList(),
       'githubUrl': githubUrl,
       'linkedinUrl': linkedinUrl,
       'websiteUrl': websiteUrl,
+      'cvUrl': cvUrl,
       'searchNameLower': fullName.toLowerCase(),
       'isOnline': false,
       'createdAt': DateTime.now().toUtc(),
@@ -113,14 +124,13 @@ class AppUserModel extends AppUser {
   }
 
   // ==========================
-  // 🚀 دالة جديدة لرفع صورة المستخدم على Cloudinary وتحديث الـ photoUrl
+  // رفع صورة المستخدم وتحديث photoUrl
   // ==========================
   Future<AppUserModel> updatePhoto(File imageFile) async {
     final cloudinary = CloudinaryService();
     final uploadedUrl = await cloudinary.uploadImage(imageFile);
 
     if (uploadedUrl != null) {
-      // إرجاع نسخة جديدة من المستخدم مع رابط الصورة الجديد
       return AppUserModel(
         id: id,
         email: email,
@@ -133,12 +143,12 @@ class AppUserModel extends AppUser {
         githubUrl: githubUrl,
         linkedinUrl: linkedinUrl,
         websiteUrl: websiteUrl,
+        cvUrl: cvUrl,
         isOnline: isOnline,
         lastSeen: lastSeen,
       );
     }
 
-    // لو الفشل، يرجع نفسه
     return this;
   }
 }

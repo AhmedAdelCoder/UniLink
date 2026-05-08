@@ -1,378 +1,9 @@
-// import 'dart:io';
-
-// import 'package:flutter/material.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:image_picker/image_picker.dart';
-
-// import '../../../../core/config/injection_container.dart';
-// import '../../../auth/data/models/app_user_model.dart';
-// import '../../../auth/domain/entities/app_user.dart';
-// import '../../../auth/domain/entities/user_project.dart';
-// import '../../../auth/presentation/bloc/auth_bloc.dart';
-// import '../../data/profile_remote_datasource.dart';
-// import '../../../chat/data/chat_remote_datasource.dart';
-// import '../../../chat/presentation/pages/chat_detail_page.dart';
-
-// class ProfilePage extends StatelessWidget {
-//   final String? userId; // null = my profile
-
-//   const ProfilePage({super.key, this.userId});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return BlocBuilder<AuthBloc, AuthState>(
-//       builder: (context, authState) {
-//         final myUid = authState.user?.id;
-//         final uid = userId ?? myUid;
-//         print("Opening profile UID: $uid");
-//         final isMe = uid == myUid;
-
-//         if (uid == null) {
-//           return const Center(child: Text('Sign in to view profile'));
-//         }
-
-//         final ds = sl<ProfileRemoteDataSource>();
-
-//         return StreamBuilder<AppUserModel?>(
-//           stream: ds.watchProfile(uid),
-//           builder: (context, snapshot) {
-//             if (snapshot.connectionState == ConnectionState.waiting &&
-//                 !snapshot.hasData) {
-//               return const Center(child: CircularProgressIndicator());
-//             }
-//             final user = snapshot.data;
-//             if (user == null) {
-//               return const Center(child: Text('Profile not found'));
-//             }
-
-//             return ListView
-//             (
-//               padding: const EdgeInsets.all(16),
-//               children: [
-//                 Row(
-//                   children: [
-//                     GestureDetector(
-//                       onTap: isMe? () => _pickAndUploadPhoto(context, uid): null,
-//                       child: CircleAvatar(
-//                         radius: 48,
-//                         backgroundImage: user.photoUrl != null
-//                             ? NetworkImage(user.photoUrl!)
-//                             : null,
-//                         child: user.photoUrl == null
-//                             ? Text(
-//                                 user.fullName.isNotEmpty
-//                                     ? user.fullName[0].toUpperCase()
-//                                     : '?',
-//                                 style: const TextStyle(fontSize: 32),
-//                               )
-//                             : null,
-//                       ),
-//                     ),
-//                     const SizedBox(width: 16),
-//                     Expanded(
-//                       child: Column(
-//                         crossAxisAlignment: CrossAxisAlignment.start,
-//                         children: [
-//                           Text(
-//                             user.fullName,
-//                             style: Theme.of(context).textTheme.titleLarge,
-//                           ),
-//                           Text(
-//                             user.email,
-//                             style: Theme.of(context).textTheme.bodySmall,
-//                           ),
-//                           Text(
-//                             user.role == UserRole.recruiter
-//                                 ? 'Recruiter'
-//                                 : 'Student',
-//                             style: TextStyle(
-//                               color: Theme.of(context).colorScheme.primary,
-//                               fontWeight: FontWeight.w600,
-//                             ),
-//                           ),
-//                         ],
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//                 const SizedBox(height: 8),
-//                 if(isMe)
-//                 TextButton.icon(
-//                   onPressed: () => _pickAndUploadPhoto(context, uid),
-//                   icon: const Icon(Icons.camera_alt_outlined),
-//                   label: const Text('Change photo'),
-//                 ),
-//                 const Divider(),
-//                 ListTile(
-//                   title: const Text('Bio'),
-//                   subtitle: Text(
-//                     user.bio.isEmpty ? 'Tap edit to add a bio' : user.bio,
-//                   ),
-//                 ),
-//                 if (user.skills.isNotEmpty) ...[
-//                   const Text(
-//                     'Skills',
-//                     style: TextStyle(fontWeight: FontWeight.bold),
-//                   ),
-//                   const SizedBox(height: 8),
-//                   Wrap(
-//                     spacing: 8,
-//                     runSpacing: 4,
-//                     children: user.skills
-//                         .map((s) => Chip(label: Text(s)))
-//                         .toList(),
-//                   ),
-//                   const SizedBox(height: 16),
-//                 ],
-//                 if (user.projects.isNotEmpty) ...[
-//                   const Text(
-//                     'Projects',
-//                     style: TextStyle(fontWeight: FontWeight.bold),
-//                   ),
-//                   ...user.projects.map(
-//                     (p) => ListTile(
-//                       title: Text(p.title),
-//                       subtitle: Text(p.description),
-//                       trailing: p.link != null && p.link!.isNotEmpty
-//                           ? IconButton(
-//                               icon: const Icon(Icons.link),
-//                               onPressed: () {},
-//                             )
-//                           : null,
-//                     ),
-//                   ),
-//                 ],
-//                 const SizedBox(height: 16),
-//                 if(isMe)
-//                 FilledButton.icon(
-//                   onPressed: () => _openEditSheet(context, user),
-//                   icon: const Icon(Icons.edit),
-//                   label: const Text('Edit profile'),
-//                 ),
-//                 const SizedBox(height: 16),
-//                 if(isMe)
-//                 OutlinedButton.icon(
-//                   onPressed: () {
-//                     context.read<AuthBloc>().add(const AuthLogoutRequested());
-//                   },
-//                   icon: const Icon(Icons.logout),
-//                   label: const Text('Log out'),
-//                 ),
-//                 const SizedBox(height: 16),
-
-//                 if (!isMe)
-//                   FilledButton(
-//                     onPressed: () => _openChat(context, user),
-//                     child: const Text("Message"),
-//                   ),
-//               ],
-//             );
-//           },
-//         );
-//       },
-//     );
-//   }
-
-//   // ==========================
-//   // دالة اختيار ورفع صورة على Cloudinary
-//   // ==========================
-//   Future<void> _pickAndUploadPhoto(BuildContext context, String uid) async {
-//     final picker = ImagePicker();
-//     final x = await picker.pickImage(
-//       source: ImageSource.gallery,
-//       maxWidth: 1024,
-//       imageQuality: 85,
-//     );
-//     if (x == null || !context.mounted) return;
-//     try {
-//       await sl<ProfileRemoteDataSource>().uploadProfilePhoto(uid, File(x.path));
-//       if (context.mounted) {
-//         ScaffoldMessenger.of(
-//           context,
-//         ).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
-//       }
-//     } catch (e) {
-//       if (context.mounted) {
-//         ScaffoldMessenger.of(
-//           context,
-//         ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
-//       }
-//     }
-//   }
-
-//   // ==========================
-//   // دالة فتح Bottom Sheet لتعديل بيانات الملف الشخصي
-//   // ==========================
-//   Future<void> _openEditSheet(BuildContext context, AppUser user) async 
-//   {
-//     final nameCtrl = TextEditingController(text: user.fullName);
-//     final bioCtrl = TextEditingController(text: user.bio);
-//     final skillsCtrl = TextEditingController(text: user.skills.join(', '));
-//     final ghCtrl = TextEditingController(text: user.githubUrl ?? '');
-//     final liCtrl = TextEditingController(text: user.linkedinUrl ?? '');
-//     final webCtrl = TextEditingController(text: user.websiteUrl ?? '');
-//     final pTitleCtrl = TextEditingController();
-//     final pDescCtrl = TextEditingController();
-//     final pLinkCtrl = TextEditingController();
-
-//     if (!context.mounted) return;
-//     await showModalBottomSheet<void>(
-//       context: context,
-//       isScrollControlled: true,
-//       builder: (ctx) {
-//         return Padding(
-//           padding: EdgeInsets.only(
-//             left: 16,
-//             right: 16,
-//             top: 16,
-//             bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-//           ),
-//           child: SingleChildScrollView(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.stretch,
-//               mainAxisSize: MainAxisSize.min,
-//               children: [
-//                 Text('Edit profile', style: Theme.of(ctx).textTheme.titleLarge),
-//                 const SizedBox(height: 12),
-//                 TextField(
-//                   controller: nameCtrl,
-//                   decoration: const InputDecoration(labelText: 'Full name'),
-//                 ),
-//                 TextField(
-//                   controller: bioCtrl,
-//                   maxLines: 3,
-//                   decoration: const InputDecoration(labelText: 'Bio'),
-//                 ),
-//                 TextField(
-//                   controller: skillsCtrl,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Skills (comma separated)',
-//                   ),
-//                 ),
-//                 TextField(
-//                   controller: ghCtrl,
-//                   decoration: const InputDecoration(labelText: 'GitHub URL'),
-//                 ),
-//                 TextField(
-//                   controller: liCtrl,
-//                   decoration: const InputDecoration(labelText: 'LinkedIn URL'),
-//                 ),
-//                 TextField(
-//                   controller: webCtrl,
-//                   decoration: const InputDecoration(labelText: 'Website'),
-//                 ),
-//                 const SizedBox(height: 8),
-//                 const Text('Add a project (optional)'),
-//                 TextField(
-//                   controller: pTitleCtrl,
-//                   decoration: const InputDecoration(labelText: 'Title'),
-//                 ),
-//                 TextField(
-//                   controller: pDescCtrl,
-//                   decoration: const InputDecoration(labelText: 'Description'),
-//                 ),
-//                 TextField(
-//                   controller: pLinkCtrl,
-//                   decoration: const InputDecoration(labelText: 'Link'),
-//                 ),
-//                 const SizedBox(height: 16),
-//                 FilledButton(
-//                   onPressed: () async {
-//                     final uid = context.read<AuthBloc>().state.user?.id;
-//                     if (uid == null) return;
-//                     final skills = skillsCtrl.text
-//                         .split(',')
-//                         .map((s) => s.trim())
-//                         .where((s) => s.isNotEmpty)
-//                         .toList();
-//                     final projects = List<UserProject>.from(user.projects);
-//                     if (pTitleCtrl.text.trim().isNotEmpty) {
-//                       projects.add(
-//                         UserProject(
-//                           title: pTitleCtrl.text.trim(),
-//                           description: pDescCtrl.text.trim(),
-//                           link: pLinkCtrl.text.trim().isEmpty
-//                               ? null
-//                               : pLinkCtrl.text.trim(),
-//                         ),
-//                       );
-//                     }
-//                     try {
-//                       await sl<ProfileRemoteDataSource>().updateProfile(
-//                         uid: uid,
-//                         fullName: nameCtrl.text.trim(),
-//                         bio: bioCtrl.text.trim(),
-//                         skills: skills,
-//                         projects: projects,
-//                         githubUrl: ghCtrl.text.trim().isEmpty
-//                             ? null
-//                             : ghCtrl.text.trim(),
-//                         linkedinUrl: liCtrl.text.trim().isEmpty
-//                             ? null
-//                             : liCtrl.text.trim(),
-//                         websiteUrl: webCtrl.text.trim().isEmpty
-//                             ? null
-//                             : webCtrl.text.trim(),
-//                       );
-//                       if (ctx.mounted) Navigator.pop(ctx);
-//                       if (context.mounted) {
-//                         ScaffoldMessenger.of(context).showSnackBar(
-//                           const SnackBar(content: Text('Profile saved')),
-//                         );
-//                       }
-//                     } catch (e) {
-//                       if (context.mounted) {
-//                         ScaffoldMessenger.of(
-//                           context,
-//                         ).showSnackBar(SnackBar(content: Text('Error: $e')));
-//                       }
-//                     }
-//                   },
-//                   child: const Text('Save'),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         );
-//       },
-//     );
-//   }
-//   Future<void> _openChat(BuildContext context, AppUserModel other) async {
-//   final auth = context.read<AuthBloc>().state.user;
-
-//   if (auth == null) return;
-
-//   final chat = sl<ChatRemoteDataSource>();
-
-//   await chat.ensureThread(
-//     myUid: auth.id,
-//     otherUid: other.id,
-//     myName: auth.fullName,
-//     otherName: other.fullName,
-//   );
-
-//   final threadId = chat.threadIdFor(auth.id, other.id);
-
-//   if (!context.mounted) return;
-
-//   await Navigator.of(context).pushNamed(
-//     ChatDetailPage.routeName,
-//     arguments: ChatDetailArgs(
-//       threadId: threadId,
-//       otherUserId: other.id,
-//       otherUserName: other.fullName,
-//     ),
-//   );
-// }
-
-// }
-
-
-
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -391,17 +22,65 @@ import '../../../follows/domain/usecases/follow_company.dart';
 import '../../../follows/domain/usecases/unfollow_company.dart';
 import '../../data/profile_remote_datasource.dart';
 
-class ProfilePage extends StatelessWidget {
-  final String? userId; // null = my profile
 
+class ProfilePage extends StatefulWidget  {
+  final String? userId; // null = my profile
   const ProfilePage({super.key, this.userId});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+
+
+  // ================= CV =================
+
+Future<void> _pickAndUploadCv(String uid) async {
+
+  //   if (await Permission.storage.isDenied) {
+  //   await Permission.storage.request();
+  // }
+
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['pdf'],
+    allowCompression: false,
+    withReadStream: false,  // ✅ أضف ده
+    withData: false, 
+  );
+
+  if (result == null || result.files.single.path == null) return;
+
+  final file = File(result.files.single.path!);
+
+  try {
+    await sl<ProfileRemoteDataSource>().uploadCv(uid, file);
+
+    // ✅ هنا
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(content: Text('CV uploaded successfully')),
+        );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, authState) {
         final myUid = authState.user?.id;
-        final uid = userId ?? myUid;
+        final uid = widget.userId ?? myUid;
 
         log("Opening profile UID: $uid");
 
@@ -527,37 +206,40 @@ class ProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           _sectionCard(
-                            context: context,
-                            title: 'CV & Documents',
-                            subtitle: 'Resume and supporting links',
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if ((user.websiteUrl ?? '').trim().isNotEmpty)
-                                  _documentRow(
-                                    context,
-                                    label: 'Portfolio',
-                                    value: user.websiteUrl!,
-                                  )
-                                else
-                                  Text(
-                                    'No CV or document links added yet.',
-                                    style:
-                                        Theme.of(context).textTheme.bodyMedium,
-                                  ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Tip: add resume or portfolio links in Edit Profile.',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                            context: context,
+                                            title: 'CV & Documents',
+                                            subtitle: 'Resume and supporting links',
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // ✅ زر رفع الـ CV (بس لو isMe)
+                                                  if (isMe)
+                                                      OutlinedButton.icon(
+                                                        onPressed: () => _pickAndUploadCv(uid), // ✅ شيل context
+                                                        icon: const Icon(Icons.upload_file_outlined),
+                                                        label: const Text('Upload CV (PDF)'),
+                                                      ),
+                                                if (isMe) const SizedBox(height: 12),
+
+                                                // ✅ عرض الـ CV لو موجود
+                                                if ((user.cvUrl ?? '').trim().isNotEmpty)
+                                                  _documentRow(context, label: 'CV / Resume', value: user.cvUrl!)
+                                                else
+                                                  Text(
+                                                    'No CV uploaded yet.',
+                                                    style: Theme.of(context).textTheme.bodyMedium,
+                                                  ),
+
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Tip: upload your resume as PDF.',
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                           const SizedBox(height: 16),
                           _sectionCard(
                             context: context,
@@ -631,6 +313,7 @@ class ProfilePage extends StatelessWidget {
       },
     );
   }
+
 
   Widget _buildProfileHeader(
     BuildContext context,
@@ -958,25 +641,47 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _documentRow(
-    BuildContext context, {
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        const Icon(Icons.description_outlined, size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '$label: $value',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+Widget _documentRow(
+  BuildContext context, {
+  required String label,
+  required String value,
+}) {
+  return Row(
+    children: [
+      const Icon(Icons.description_outlined, size: 18),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: Theme.of(context).textTheme.labelLarge),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    decoration: TextDecoration.underline,
+                  ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-      ],
-    );
-  }
-
+      ),
+      IconButton(
+        tooltip: 'Copy link',
+        icon: const Icon(Icons.copy, size: 18),
+        onPressed: () async {
+          await Clipboard.setData(ClipboardData(text: value));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('CV link copied')),
+            );
+          }
+        },
+      ),
+    ],
+  );
+}
   Widget _projectCard(BuildContext context, {required UserProject project}) {
     final hasLink = (project.link ?? '').trim().isNotEmpty;
     return Container(

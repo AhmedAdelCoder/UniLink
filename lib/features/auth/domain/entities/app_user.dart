@@ -16,6 +16,7 @@ class AppUser extends Equatable {
   final String? githubUrl;
   final String? linkedinUrl;
   final String? websiteUrl;
+  final String? cvUrl;
   final bool isOnline;
   final DateTime? lastSeen;
 
@@ -31,6 +32,7 @@ class AppUser extends Equatable {
     this.githubUrl,
     this.linkedinUrl,
     this.websiteUrl,
+     this.cvUrl,
     this.isOnline = false,
     this.lastSeen,
   });
@@ -48,6 +50,7 @@ class AppUser extends Equatable {
         githubUrl,
         linkedinUrl,
         websiteUrl,
+        cvUrl,
         isOnline,
         lastSeen,
       ];

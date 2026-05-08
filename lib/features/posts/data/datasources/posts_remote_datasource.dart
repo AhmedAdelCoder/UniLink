@@ -156,7 +156,6 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
     final now = DateTime.now();
     final postRef = _postsCollection.doc();
 
-    // ✅ رفع الصورة باستخدام Cloudinary
     if (imageFilePath != null) {
       final file = File(imageFilePath);
       imageUrl = await _cloudinaryService.uploadImage(file);
@@ -226,6 +225,7 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
 
       if (!doc.exists) {
         tx.set(likeRef, {
+          'userId': user.uid, // ✅ FIX: مطلوب عشان الـ Firestore Rule تشتغل
           'createdAt': FieldValue.serverTimestamp(),
         });
 

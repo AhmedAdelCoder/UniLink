@@ -22,6 +22,7 @@ abstract class ProfileRemoteDataSource {
   });
 
   Future<String> uploadProfilePhoto(String uid, File file);
+   Future<String> uploadCv(String uid, File file);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -47,6 +48,26 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       return AppUserModel.fromFirestore(snap.id, snap.data()!);
     });
   }
+
+  @override
+Future<String> uploadCv(String uid, File file) async {
+  final user = _auth.currentUser;
+  if (user == null || user.uid != uid) {
+    throw StateError('Not authenticated');
+  }
+
+  final uploadedUrl = await _cloudinaryService.uploadFile(file);
+  if (uploadedUrl == null) {
+    throw StateError('Failed to upload CV');
+  }
+
+  await _users.doc(uid).update({
+    'cvUrl': uploadedUrl,
+    'updatedAt': FieldValue.serverTimestamp(),
+  });
+
+  return uploadedUrl;
+}
 
   @override
   Future<void> updateProfile({

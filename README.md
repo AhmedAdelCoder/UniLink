@@ -239,19 +239,20 @@ UniLink is actively under development. Here's what's coming:
 
 ## 📸 Screenshots
 
-> Real screenshots from the current build of UniLink — running on Android & iOS.
+> Real screenshots from the current build of UniLink — running live on Android & iOS.
 
 <br/>
 
 ### 🚀 Onboarding Flow
 
 <div align="center">
-
-| Welcome | Grow Your Network | Communicate |
-|:---:|:---:|:---:|
-| <img src="images/onboarding1.jpeg" width="200" alt="Onboarding - Welcome"/> | <img src="images/onboarding2.jpeg" width="200" alt="Onboarding - Network"/> | <img src="images/onboarding3.jpeg" width="200" alt="Onboarding - Communicate"/> |
-| *App introduction with the UniLink logo and tagline* | *Highlight the networking value proposition* | *Emphasize real-time chat & connection* |
-
+  <img src="images/onboarding1.jpeg" width="30%" alt="Welcome Screen" />
+  &nbsp;&nbsp;
+  <img src="images/onboarding2.jpeg" width="30%" alt="Grow Your Network" />
+  &nbsp;&nbsp;
+  <img src="images/onboarding3.jpeg" width="30%" alt="Communicate" />
+  <br/><br/>
+  <sub><b>① Welcome</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>② Grow Your Network</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>③ Communicate</b></sub>
 </div>
 
 <br/>
@@ -259,12 +260,9 @@ UniLink is actively under development. Here's what's coming:
 ### 🔐 Authentication
 
 <div align="center">
-
-| Login Screen |
-|:---:|
-| <img src="images/login.jpeg" width="220" alt="Login Screen"/> |
-| *Clean dark-themed login with email/password and account creation flow* |
-
+  <img src="images/login.jpeg" width="32%" alt="Login Screen" />
+  <br/><br/>
+  <sub><b>Login Screen</b> — Clean dark-themed UI with email/password auth & account creation</sub>
 </div>
 
 <br/>
@@ -272,13 +270,16 @@ UniLink is actively under development. Here's what's coming:
 ### 🏠 Core App Screens
 
 <div align="center">
-
-| Feed | Student Profile | Recruiter Profile |
-|:---:|:---:|:---:|
-| <img src="images/feed.jpeg" width="200" alt="Feed Screen"/> | <img src="images/profile_student.jpeg" width="200" alt="Student Profile"/> | <img src="images/profile_recruiter.jpeg" width="200" alt="Recruiter Profile"/> |
-| *Social feed with post creation, photo sharing, likes & comments* | *Student profile with About, Featured highlights, skills & projects* | *Recruiter profile with role badge, bio, and featured overview* |
-
+  <img src="images/feed.jpeg" width="30%" alt="Feed Screen" />
+  &nbsp;&nbsp;
+  <img src="images/profile_student.jpeg" width="30%" alt="Student Profile" />
+  &nbsp;&nbsp;
+  <img src="images/profile_recruiter.jpeg" width="30%" alt="Recruiter Profile" />
+  <br/><br/>
+  <sub><b>① Feed</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>② Student Profile</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>③ Recruiter Profile</b></sub>
 </div>
+
+<br/>
 
 ---
 
@@ -321,7 +322,7 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 <div align="center">
 
-**Ahmed Adel Ahmed**
+**Your Name**
 
 [![GitHub](https://img.shields.io/badge/GitHub-@your--username-181717?style=flat-square&logo=github)](https://github.com/your-username)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-profile)

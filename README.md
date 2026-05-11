@@ -239,13 +239,46 @@ UniLink is actively under development. Here's what's coming:
 
 ## 📸 Screenshots
 
-> Coming soon — UI designs and live screenshots will be added in upcoming releases.
-
-| Onboarding | Login | Student Home | Recruiter Dashboard |
-|:---:|:---:|:---:|:---:|
-| *soon* | *soon* | *soon* | *soon* |
+> Real screenshots from the current build of UniLink — running on Android & iOS.
 
 <br/>
+
+### 🚀 Onboarding Flow
+
+<div align="center">
+
+| Welcome | Grow Your Network | Communicate |
+|:---:|:---:|:---:|
+| <img src="images/onboarding1.jpeg" width="200" alt="Onboarding - Welcome"/> | <img src="images/onboarding2.jpeg" width="200" alt="Onboarding - Network"/> | <img src="images/onboarding3.jpeg" width="200" alt="Onboarding - Communicate"/> |
+| *App introduction with the UniLink logo and tagline* | *Highlight the networking value proposition* | *Emphasize real-time chat & connection* |
+
+</div>
+
+<br/>
+
+### 🔐 Authentication
+
+<div align="center">
+
+| Login Screen |
+|:---:|
+| <img src="images/login.jpeg" width="220" alt="Login Screen"/> |
+| *Clean dark-themed login with email/password and account creation flow* |
+
+</div>
+
+<br/>
+
+### 🏠 Core App Screens
+
+<div align="center">
+
+| Feed | Student Profile | Recruiter Profile |
+|:---:|:---:|:---:|
+| <img src="images/feed.jpeg" width="200" alt="Feed Screen"/> | <img src="images/profile_student.jpeg" width="200" alt="Student Profile"/> | <img src="images/profile_recruiter.jpeg" width="200" alt="Recruiter Profile"/> |
+| *Social feed with post creation, photo sharing, likes & comments* | *Student profile with About, Featured highlights, skills & projects* | *Recruiter profile with role badge, bio, and featured overview* |
+
+</div>
 
 ---
 

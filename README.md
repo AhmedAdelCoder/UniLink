@@ -275,20 +275,6 @@ UniLink is actively under development. Here's what's coming:
 </div>
 
 
-### 🏠 Core App Screens
-
-<div align="center">
-  <img src="images/feed.jpeg" width="30%" alt="Feed Screen" />
-  &nbsp;&nbsp;
-  <img src="images/profile_student.jpeg" width="30%" alt="Student Profile" />
-  &nbsp;&nbsp;
-  <img src="images/profile_recruiter.jpeg" width="30%" alt="Recruiter Profile" />
-  <br/><br/>
-  <sub><b>① Feed</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>② Student Profile</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>③ Recruiter Profile</b></sub>
-</div>
-
-<br/>
-
 ---
 
 ## 🤝 Contributing
@@ -330,7 +316,7 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 <div align="center">
 
-**Your Name**
+**Ahmed Adel Ahmed**
 
 [![GitHub](https://img.shields.io/badge/GitHub-@your--username-181717?style=flat-square&logo=github)](https://github.com/your-username)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/your-profile)

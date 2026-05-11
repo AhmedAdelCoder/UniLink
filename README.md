@@ -238,24 +238,41 @@ UniLink is actively under development. Here's what's coming:
 ---
 
 ## 📸 Screenshots
-
-> Real screenshots from the current build of UniLink — running live on Android & iOS.
-
-<br/>
-
 ### 🚀 Onboarding Flow
 
 <div align="center">
-  <img src="images/onboarding1.jpeg" width="30%" alt="Welcome Screen" />
+  <img src="images/onborad1.jpeg" width="30%" alt="Welcome Screen" />
   &nbsp;&nbsp;
-  <img src="images/onboarding2.jpeg" width="30%" alt="Grow Your Network" />
+  <img src="images/onborad2.jpeg" width="30%" alt="Grow Your Network" />
   &nbsp;&nbsp;
-  <img src="images/onboarding3.jpeg" width="30%" alt="Communicate" />
+  <img src="images/onborad3.jpeg" width="30%" alt="Communicate" />
   <br/><br/>
   <sub><b>① Welcome</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>② Grow Your Network</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>③ Communicate</b></sub>
 </div>
 
 <br/>
+
+### 🔐 Authentication
+
+<div align="center">
+  <img src="images/login.jpeg" width="32%" alt="Login Screen" />
+  <br/><br/>
+  <sub><b>Login Screen</b> — Clean dark-themed UI with email/password auth & account creation</sub>
+</div>
+
+<br/>
+
+### 🏠 Core App Screens
+
+<div align="center">
+  <img src="images/Feed.jpeg" width="30%" alt="Feed Screen" />
+  &nbsp;&nbsp;
+  <img src="images/profileStudent.jpeg" width="30%" alt="Student Profile" />
+  &nbsp;&nbsp;
+  <img src="images/Profile.jpeg" width="30%" alt="Recruiter Profile" />
+  <br/><br/>
+  <sub><b>① Feed</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>② Student Profile</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>③ Recruiter Profile</b></sub>
+</div>
 
 ### 🔐 Authentication
 

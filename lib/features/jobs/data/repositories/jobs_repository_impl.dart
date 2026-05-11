@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../follows/domain/repositories/follows_repository.dart';
+import '../../../connections/data/connections_remote_datasource.dart';
 import '../../domain/entities/job.dart';
 import '../../domain/entities/job_application.dart';
 import '../../domain/repositories/jobs_repository.dart';
@@ -13,29 +13,29 @@ import '../datasources/jobs_remote_datasource.dart';
 class JobsRepositoryImpl implements JobsRepository {
   JobsRepositoryImpl({
     required this.jobsRemoteDataSource,
-    required this.followsRepository,
+    required this.connectionsRemoteDataSource,
   });
 
   final JobsRemoteDataSource jobsRemoteDataSource;
-  final FollowsRepository followsRepository;
+  final ConnectionsRemoteDataSource connectionsRemoteDataSource;
 
   @override
   Stream<List<Job>> streamFollowedJobs(String studentId) {
     return Rx.combineLatest2<List<Job>, List<String>, List<Job>>(
       jobsRemoteDataSource.streamAllJobs(),
-      followsRepository.watchFollowedCompanyIds(studentId),
-      (jobs, followedCompanyIds) {
-        final followedSet = followedCompanyIds.toSet();
+      connectionsRemoteDataSource.watchConnectedUserIds(studentId),
+      (jobs, connectedIds) {
+        final connectedSet = connectedIds.toSet();
         return jobs
-            .where((job) => followedSet.contains(job.companyId))
+            .where((job) => connectedSet.contains(job.recruiterId))
             .toList(growable: false);
       },
     );
   }
 
   @override
-  Stream<List<Job>> streamCompanyJobs(String companyId) {
-    return jobsRemoteDataSource.streamCompanyJobs(companyId);
+  Stream<List<Job>> streamRecruiterJobs(String recruiterId) {
+    return jobsRemoteDataSource.streamRecruiterJobs(recruiterId);
   }
 
   @override
@@ -45,36 +45,37 @@ class JobsRepositoryImpl implements JobsRepository {
 
   @override
   Future<Either<Failure, void>> createJob({
+    required String recruiterId,
+    required String recruiterName,
+    String? recruiterAvatarUrl,
     required String title,
     required String description,
     required List<String> skills,
     required String jobType,
     required String salaryRange,
     required String location,
+    String? formUrl,
   }) async {
     try {
-      print("🔥 CREATE JOB START");
-
-      final result = await jobsRemoteDataSource.createJob(
+      await jobsRemoteDataSource.createJob(
         title: title,
         description: description,
         skills: skills,
         jobType: jobType,
         salaryRange: salaryRange,
         location: location,
+        formUrl: formUrl,
       );
-
-      print("✅ CREATE JOB SUCCESS");
-      return Right(result);
+      return const Right(null);
+    } on UserNotLoggedInException catch (e) {
+      return Left(AuthFailure(e.toString()));
+    } on RecruiterProfileNotFoundException catch (e) {
+      return Left(ServerFailure(e.toString()));
     } on fb.FirebaseAuthException catch (e) {
-      print("❌ AUTH ERROR: ${e.message}");
       return Left(AuthFailure(e.message ?? 'Authentication error'));
     } on FirebaseException catch (e) {
-      print("❌ FIREBASE ERROR: ${e.message}");
       return Left(ServerFailure(e.message ?? 'Firebase error'));
-    } catch (e, stack) {
-      print("❌ UNKNOWN ERROR: $e");
-      print(stack);
+    } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -85,10 +86,8 @@ class JobsRepositoryImpl implements JobsRepository {
       await jobsRemoteDataSource.deleteJob(jobId);
       return const Right(null);
     } on FirebaseException catch (e) {
-      print("❌ DELETE ERROR: ${e.message}");
       return Left(ServerFailure(e.message ?? 'Firebase error'));
     } catch (e) {
-      print("❌ UNKNOWN DELETE ERROR: $e");
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -96,26 +95,43 @@ class JobsRepositoryImpl implements JobsRepository {
   @override
   Future<Either<Failure, void>> applyToJob({
     required String jobId,
-    required String message,
-    required String cvFilePath,
+    required String recruiterId,
+    required String studentId,
+    required String studentName,
   }) async {
     try {
       await jobsRemoteDataSource.applyToJob(
         jobId: jobId,
-        message: message,
-        cvFilePath: cvFilePath,
+        recruiterId: recruiterId,
+        studentId: studentId,
+        studentName: studentName,
       );
-
       return const Right(null);
+    } on UserNotLoggedInException catch (e) {
+      return Left(AuthFailure(e.toString()));
     } on fb.FirebaseAuthException catch (e) {
-      print("❌ AUTH APPLY ERROR: ${e.message}");
       return Left(AuthFailure(e.message ?? 'Authentication error'));
     } on FirebaseException catch (e) {
-      print("❌ FIREBASE APPLY ERROR: ${e.message}");
       return Left(ServerFailure(e.message ?? 'Firebase error'));
-    } catch (e, stack) {
-      print("❌ UNKNOWN APPLY ERROR: $e");
-      print(stack);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateApplicationStatus({
+    required String applicationId,
+    required String status,
+  }) async {
+    try {
+      await jobsRemoteDataSource.updateApplicationStatus(
+        applicationId: applicationId,
+        status: status,
+      );
+      return const Right(null);
+    } on FirebaseException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Firebase error'));
+    } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }

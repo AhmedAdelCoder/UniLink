@@ -1,7 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -18,7 +17,28 @@ class JobsPage extends StatefulWidget {
 }
 
 class _JobsPageState extends State<JobsPage> {
-  String? _lastLoadedKey;
+  bool _streamStarted = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _startStreamIfNeeded();
+  }
+
+  void _startStreamIfNeeded() {
+    if (_streamStarted) return;
+    final authUser = context.read<AuthBloc>().state.user;
+    if (authUser == null) return;
+
+    _streamStarted = true;
+    final bloc = context.read<JobsBloc>();
+
+    if (authUser.role == UserRole.student) {
+      bloc.add(JobsStartFeed(authUser.id));
+    } else {
+      bloc.add(JobsStartRecruiterJobs(authUser.id));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +58,7 @@ class _JobsPageState extends State<JobsPage> {
         }
       },
       builder: (context, state) {
-        _loadJobsIfNeeded(context, authUser);
-
-        if (state.isLoading && state.jobs.isEmpty) {
+        if (state.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -57,6 +75,8 @@ class _JobsPageState extends State<JobsPage> {
                       builder: (_) => const CreateJobPage(),
                     ),
                   );
+                  // ✅ Stream auto-updates via Firestore snapshots
+                  // No manual refresh needed
                 },
               ),
             const SizedBox(height: 10),
@@ -69,7 +89,7 @@ class _JobsPageState extends State<JobsPage> {
                   isRecruiter: authUser.role == UserRole.recruiter,
                   isApplying: state.isApplying,
                   isSubmitting: state.isSubmitting,
-                  onApply: () => _showApplySheet(context, job.id),
+                  onApply: () => _showApplySheet(context, job),
                   onDelete: () => _confirmDelete(context, job.id),
                   onViewApplicants: () {
                     Navigator.of(context).push(
@@ -86,138 +106,83 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
-  void _loadJobsIfNeeded(BuildContext context, AppUser authUser) {
-    final jobsBloc = context.read<JobsBloc>();
-    if (authUser.role == UserRole.student) {
-      final key = 'student_${authUser.id}';
-      if (_lastLoadedKey != key) {
-        _lastLoadedKey = key;
-        jobsBloc.add(JobsStartFeed(authUser.id));
-      }
-      return;
-    }
-
-    final keyPrefix = 'recruiter_${authUser.id}_';
-    if (_lastLoadedKey?.startsWith(keyPrefix) == true) return;
-
-    FirebaseFirestore.instance
-        .collection('companies')
-        .where('ownerId', isEqualTo: authUser.id)
-        .limit(1)
-        .get()
-        .then((snap) {
-      if (!mounted || snap.docs.isEmpty) return;
-      final companyId = snap.docs.first.id;
-      final key = '$keyPrefix$companyId';
-      if (_lastLoadedKey == key) return;
-      _lastLoadedKey = key;
-      jobsBloc.add(JobsStartRecruiterJobs(companyId));
-    });
-  }
-
-  Future<void> _showApplySheet(BuildContext context, String jobId) async {
-    final messageController = TextEditingController();
-    String? pickedPath;
+  Future<void> _showApplySheet(BuildContext context, Job job) async {
+    final authUser = context.read<AuthBloc>().state.user;
+    if (authUser == null) return;
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (sheetContext, setModalState) {
-            final state = context.watch<JobsBloc>().state;
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 8,
-                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 8,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Apply to: ${job.title}',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Apply to job',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: state.isApplying
-                        ? null
-                        : () async {
-                            final result = await FilePicker.platform.pickFiles(
-                              type: FileType.custom,
-                              allowedExtensions: const ['pdf', 'doc', 'docx'],
-                            );
-                            if (result == null ||
-                                result.files.isEmpty ||
-                                result.files.single.path == null) {
-                              return;
-                            }
-                            setModalState(() {
-                              pickedPath = result.files.single.path;
-                            });
-                          },
-                    icon: const Icon(Icons.upload_file_outlined),
-                    label: Text(
-                      pickedPath == null ? 'Choose CV' : 'CV selected',
-                    ),
-                  ),
-                  if (pickedPath != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        pickedPath!.split('\\').last,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: messageController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Message (optional)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: state.isApplying
-                              ? null
-                              : () => Navigator.pop(sheetContext),
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: state.isApplying || pickedPath == null
-                              ? null
-                              : () {
-                                  context.read<JobsBloc>().add(
-                                        JobsApplyRequested(
-                                          jobId: jobId,
-                                          cvFilePath: pickedPath!,
-                                          message:
-                                              messageController.text.trim(),
-                                        ),
-                                      );
-                                  Navigator.pop(sheetContext);
-                                },
-                          child: const Text('Apply'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'Posted by ${job.recruiterName}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            );
-          },
+              const SizedBox(height: 20),
+              if (job.formUrl != null && job.formUrl!.isNotEmpty)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Application Form'),
+                    onPressed: () async {
+                      // ✅ Close sheet first
+                      Navigator.pop(sheetContext);
+
+                      // ✅ Launch URL immediately — no Firestore write needed
+                      final uri = Uri.tryParse(job.formUrl!);
+                      if (uri != null && await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      } else {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Could not open the form URL.'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No application form available for this job.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -249,7 +214,7 @@ class _JobsPageState extends State<JobsPage> {
 
   Widget _emptyState(BuildContext context, UserRole role) {
     final text = role == UserRole.student
-        ? 'Follow companies to see matching jobs here.'
+        ? 'Connect with a recruiter to see their jobs here.'
         : 'No jobs yet. Create your first job post.';
 
     return Card(
@@ -286,15 +251,15 @@ class _JobsHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              authUser.role == UserRole.student ? 'Jobs For You' : 'Recruiter Jobs',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              authUser.role == UserRole.student ? 'Jobs For You' : 'My Jobs',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 6),
             Text(
               authUser.role == UserRole.student
-                  ? 'Real-time jobs from companies you follow.'
+                  ? 'Jobs from recruiters you are connected with.'
                   : 'Manage your jobs and review applicants.',
             ),
           ],
@@ -305,9 +270,7 @@ class _JobsHeader extends StatelessWidget {
 }
 
 class _RecruiterActions extends StatelessWidget {
-  const _RecruiterActions({
-    required this.onCreateJob,
-  });
+  const _RecruiterActions({required this.onCreateJob});
 
   final VoidCallback onCreateJob;
 
@@ -357,21 +320,36 @@ class _JobCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              job.companyName,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+            Row(
+              children: [
+                if (job.recruiterAvatarUrl != null)
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundImage: NetworkImage(job.recruiterAvatarUrl!),
                   ),
+                if (job.recruiterAvatarUrl != null) const SizedBox(width: 8),
+                Text(
+                  job.recruiterName,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
               job.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 4),
             Text(job.location),
+            const SizedBox(height: 4),
+            Text(
+              '${job.jobType} • ${job.salaryRange}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 6),
             Text(
               _formatTimeAgo(job.createdAt),
@@ -381,9 +359,8 @@ class _JobCard extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: -8,
-              children: job.skills
-                  .map((skill) => Chip(label: Text(skill)))
-                  .toList(),
+              children:
+                  job.skills.map((skill) => Chip(label: Text(skill))).toList(),
             ),
             const SizedBox(height: 12),
             if (isRecruiter)

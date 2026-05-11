@@ -6,10 +6,10 @@ class JobApplicationModel extends JobApplication {
   const JobApplicationModel({
     required super.id,
     required super.jobId,
+    required super.recruiterId,
     required super.studentId,
     required super.studentName,
-    required super.cvUrl,
-    required super.message,
+    required super.status,
     required super.createdAt,
   });
 
@@ -25,10 +25,10 @@ class JobApplicationModel extends JobApplication {
     return JobApplicationModel(
       id: doc.id,
       jobId: (data['jobId'] as String?) ?? '',
+      recruiterId: (data['recruiterId'] as String?) ?? '',
       studentId: (data['studentId'] as String?) ?? '',
       studentName: (data['studentName'] as String?) ?? 'Student',
-      cvUrl: (data['cvUrl'] as String?) ?? '',
-      message: (data['message'] as String?) ?? '',
+      status: (data['status'] as String?) ?? 'pending',
       createdAt: createdAt,
     );
   }

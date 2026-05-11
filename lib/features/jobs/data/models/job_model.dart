@@ -5,9 +5,9 @@ import '../../domain/entities/job.dart';
 class JobModel extends Job {
   const JobModel({
     required super.id,
-    required super.companyId,
-    required super.companyName,
-    super.companyLogoUrl,
+    required super.recruiterId,
+    required super.recruiterName,
+    super.recruiterAvatarUrl,
     required super.title,
     required super.description,
     required super.skills,
@@ -15,6 +15,7 @@ class JobModel extends Job {
     required super.salaryRange,
     required super.location,
     required super.createdAt,
+    super.formUrl,
   });
 
   factory JobModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -26,9 +27,9 @@ class JobModel extends Job {
 
     return JobModel(
       id: doc.id,
-      companyId: (data['companyId'] as String?) ?? '',
-      companyName: (data['companyName'] as String?) ?? 'Company',
-      companyLogoUrl: data['companyLogoUrl'] as String?,
+      recruiterId: (data['recruiterId'] as String?) ?? '',
+      recruiterName: (data['recruiterName'] as String?) ?? 'Recruiter',
+      recruiterAvatarUrl: data['recruiterAvatarUrl'] as String?,
       title: (data['title'] as String?) ?? '',
       description: (data['description'] as String?) ?? '',
       skills: ((data['skills'] as List<dynamic>?) ?? const [])
@@ -39,6 +40,7 @@ class JobModel extends Job {
       salaryRange: (data['salaryRange'] as String?) ?? '',
       location: (data['location'] as String?) ?? '',
       createdAt: createdAt,
+      formUrl: data['formUrl'] as String?,
     );
   }
 }

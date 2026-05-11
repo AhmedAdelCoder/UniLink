@@ -6,11 +6,23 @@
     <!-- لو Android 13 أو أعلى، ممكن تحتاج هذا -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
+
+        <queries>
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="https" />
+    </intent>
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="http" />
+    </intent>
+    </queries>
     
     <application
         android:label="unilink"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
 
         <activity
             android:name=".MainActivity"

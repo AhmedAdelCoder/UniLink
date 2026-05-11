@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  url_launcher: ^6.2.5
   http: ^1.1.0
 
   # State management and utilities

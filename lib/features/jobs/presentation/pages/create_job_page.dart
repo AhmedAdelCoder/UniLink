@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/jobs_bloc.dart';
 
 class CreateJobPage extends StatefulWidget {
@@ -17,6 +18,7 @@ class _CreateJobPageState extends State<CreateJobPage> {
   final _jobTypeCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
+  final _formUrlCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -27,6 +29,7 @@ class _CreateJobPageState extends State<CreateJobPage> {
     _jobTypeCtrl.dispose();
     _salaryCtrl.dispose();
     _locationCtrl.dispose();
+    _formUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -41,21 +44,28 @@ class _CreateJobPageState extends State<CreateJobPage> {
 
     if (skills.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter at least one skill")),
+        const SnackBar(content: Text('Please enter at least one skill')),
       );
       return;
     }
 
-    print("🔥 POST JOB CLICKED");
+    final authUser = context.read<AuthBloc>().state.user;
+    if (authUser == null) return;
 
     context.read<JobsBloc>().add(
           JobsCreateRequested(
+            recruiterId: authUser.id,
+            recruiterName: authUser.fullName,
+            recruiterAvatarUrl: authUser.photoUrl,
             title: _titleCtrl.text.trim(),
             description: _descriptionCtrl.text.trim(),
             skills: skills,
             jobType: _jobTypeCtrl.text.trim(),
             salaryRange: _salaryCtrl.text.trim(),
             location: _locationCtrl.text.trim(),
+            formUrl: _formUrlCtrl.text.trim().isEmpty
+                ? null
+                : _formUrlCtrl.text.trim(),
           ),
         );
   }
@@ -66,8 +76,6 @@ class _CreateJobPageState extends State<CreateJobPage> {
       appBar: AppBar(title: const Text('Create Job')),
       body: BlocListener<JobsBloc, JobsState>(
         listener: (context, state) {
-          print("📦 STATE: ${state.infoMessage} | ${state.errorMessage}");
-
           if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -75,15 +83,13 @@ class _CreateJobPageState extends State<CreateJobPage> {
                 backgroundColor: Colors.red,
               ),
             );
+            context.read<JobsBloc>().add(const JobsClearMessage());
           }
-
-          if (state.infoMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.infoMessage!)),
-            );
-          }
-
           if (state.infoMessage == 'Job posted successfully.') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Job posted successfully.')),
+            );
+            context.read<JobsBloc>().add(const JobsClearMessage());
             Navigator.pop(context);
           }
         },
@@ -96,25 +102,19 @@ class _CreateJobPageState extends State<CreateJobPage> {
                 TextFormField(
                   controller: _titleCtrl,
                   decoration: const InputDecoration(labelText: 'Job title'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Required'
-                          : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-
                 TextFormField(
                   controller: _descriptionCtrl,
                   minLines: 4,
                   maxLines: 6,
                   decoration: const InputDecoration(labelText: 'Description'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Required'
-                          : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-
                 TextFormField(
                   controller: _skillsCtrl,
                   decoration: const InputDecoration(
@@ -122,52 +122,49 @@ class _CreateJobPageState extends State<CreateJobPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-
                 TextFormField(
                   controller: _jobTypeCtrl,
                   decoration: const InputDecoration(labelText: 'Job type'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Required'
-                          : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-
                 TextFormField(
                   controller: _salaryCtrl,
                   decoration: const InputDecoration(labelText: 'Salary range'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Required'
-                          : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 12),
-
                 TextFormField(
                   controller: _locationCtrl,
                   decoration: const InputDecoration(labelText: 'Location'),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty
-                          ? 'Required'
-                          : null,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _formUrlCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Application Form URL (optional)',
+                    hintText: 'https://forms.google.com/...',
+                  ),
+                  keyboardType: TextInputType.url,
                 ),
                 const SizedBox(height: 20),
-
                 BlocBuilder<JobsBloc, JobsState>(
                   builder: (context, state) {
                     return SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: state.isSubmitting
-                            ? null
-                            : () => _submit(context),
+                        onPressed:
+                            state.isSubmitting ? null : () => _submit(context),
                         child: state.isSubmitting
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                                    strokeWidth: 2),
                               )
                             : const Text('Post job'),
                       ),

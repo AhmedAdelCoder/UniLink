@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -8,33 +6,21 @@ import 'package:unilink/core/services/cloudinary_service.dart';
 import '../models/job_application_model.dart';
 import '../models/job_model.dart';
 
-// ─────────────────────────────────────────────
-// Custom Exceptions — يستخدمها الـ UI لتوجيه المستخدم
-// ─────────────────────────────────────────────
-
-/// يُرمى لما المستخدم مش logged in
 class UserNotLoggedInException implements Exception {
   @override
   String toString() => 'No user is currently logged in.';
 }
 
-/// يُرمى لما الـ recruiter مش عنده company profile في Firestore
-class CompanyProfileNotFoundException implements Exception {
+class RecruiterProfileNotFoundException implements Exception {
   @override
   String toString() =>
-      'No company profile found for this recruiter. Please create a company profile first.';
+      'No recruiter profile found. Please complete your profile first.';
 }
-
-// ─────────────────────────────────────────────
-// Abstract Interface
-// ─────────────────────────────────────────────
 
 abstract class JobsRemoteDataSource {
   Stream<List<JobModel>> streamAllJobs();
-  Stream<List<JobModel>> streamCompanyJobs(String companyId);
+  Stream<List<JobModel>> streamRecruiterJobs(String recruiterId);
 
-  /// Throws [UserNotLoggedInException] if no user is logged in.
-  /// Throws [CompanyProfileNotFoundException] if recruiter has no company profile.
   Future<void> createJob({
     required String title,
     required String description,
@@ -42,34 +28,36 @@ abstract class JobsRemoteDataSource {
     required String jobType,
     required String salaryRange,
     required String location,
+    String? formUrl,
   });
 
   Future<void> deleteJob(String jobId);
 
   Future<void> applyToJob({
     required String jobId,
-    required String message,
-    required String cvFilePath,
+    required String recruiterId,
+    required String studentId,
+    required String studentName,
+  });
+
+  Future<void> updateApplicationStatus({
+    required String applicationId,
+    required String status,
   });
 
   Stream<List<JobApplicationModel>> streamApplicationsForJob(String jobId);
 }
 
-// ─────────────────────────────────────────────
-// Implementation
-// ─────────────────────────────────────────────
-
 class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
   JobsRemoteDataSourceImpl({
     required FirebaseFirestore firestore,
     required FirebaseStorage storage,
-    required fb.FirebaseAuth firebaseAuth, required CloudinaryService cloudinaryService,
+    required fb.FirebaseAuth firebaseAuth,
+    required CloudinaryService cloudinaryService,
   })  : _firestore = firestore,
-        _storage = storage,
         _firebaseAuth = firebaseAuth;
 
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
   final fb.FirebaseAuth _firebaseAuth;
 
   CollectionReference<Map<String, dynamic>> get _jobs =>
@@ -78,39 +66,27 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
 
-  CollectionReference<Map<String, dynamic>> get _companies =>
-      _firestore.collection('companies');
-
   CollectionReference<Map<String, dynamic>> get _applications =>
       _firestore.collection('applications');
 
-  // ───────────────────────────────────────────
-  // Stream All Jobs
-  // ───────────────────────────────────────────
-
+  // ✅ Real-time stream — snapshots() auto-updates on any Firestore change
   @override
   Stream<List<JobModel>> streamAllJobs() {
-    return _jobs.orderBy('createdAt', descending: true).snapshots().map(
-          (snap) => snap.docs.map(JobModel.fromFirestore).toList(),
-        );
-  }
-
-  // ───────────────────────────────────────────
-  // Stream Jobs for a Specific Company
-  // ───────────────────────────────────────────
-
-  @override
-  Stream<List<JobModel>> streamCompanyJobs(String companyId) {
     return _jobs
-        .where('companyId', isEqualTo: companyId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(JobModel.fromFirestore).toList());
   }
 
-  // ───────────────────────────────────────────
-  // Create Job
-  // ───────────────────────────────────────────
+  // ✅ Real-time stream for recruiter jobs
+  @override
+  Stream<List<JobModel>> streamRecruiterJobs(String recruiterId) {
+    return _jobs
+        .where('recruiterId', isEqualTo: recruiterId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(JobModel.fromFirestore).toList());
+  }
 
   @override
   Future<void> createJob({
@@ -120,103 +96,87 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     required String jobType,
     required String salaryRange,
     required String location,
+    String? formUrl,
   }) async {
-    // 1️⃣ التحقق من تسجيل الدخول
     final currentUser = _firebaseAuth.currentUser;
-    if (currentUser == null) {
-      throw UserNotLoggedInException();
-    }
+    if (currentUser == null) throw UserNotLoggedInException();
 
-    // 2️⃣ البحث عن company profile بـ ownerId
-    // ⚠️ تأكد إن الـ field في Firestore اسمه "ownerId" وليس "recruiterId"
-    final companySnapshot = await _companies
-        .where('ownerId', isEqualTo: currentUser.uid)
-        .limit(1)
-        .get();
+    final userDoc = await _users.doc(currentUser.uid).get();
+    if (!userDoc.exists) throw RecruiterProfileNotFoundException();
 
-    // 3️⃣ لو مفيش company → throw exception واضحة (مش generic Exception)
-    if (companySnapshot.docs.isEmpty) {
-      throw CompanyProfileNotFoundException();
-    }
+    final userData = userDoc.data() ?? {};
+    final recruiterName = (userData['fullName'] as String?) ??
+        (userData['name'] as String?) ??
+        'Recruiter';
+    final recruiterAvatarUrl =
+        userData['avatarUrl'] as String? ?? userData['photoUrl'] as String?;
 
-    // 4️⃣ جلب بيانات الـ company
-    final companyDoc = companySnapshot.docs.first;
-    final companyData = companyDoc.data();
-
-    // 5️⃣ إنشاء الـ job
+    // ✅ Firestore write triggers streamRecruiterJobs snapshot automatically
     await _jobs.add({
-      'companyId': companyDoc.id,
-      'companyName': companyData['name'] ?? 'Company',
-      'companyLogoUrl': companyData['logoUrl'],
-      'recruiterId': currentUser.uid, // مفيد للـ Firestore rules
+      'recruiterId': currentUser.uid,
+      'recruiterName': recruiterName,
+      'recruiterAvatarUrl': recruiterAvatarUrl,
       'title': title,
       'description': description,
       'skills': skills,
       'jobType': jobType,
       'salaryRange': salaryRange,
       'location': location,
+      'formUrl': formUrl,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
-
-  // ───────────────────────────────────────────
-  // Delete Job
-  // ───────────────────────────────────────────
 
   @override
   Future<void> deleteJob(String jobId) async {
     await _jobs.doc(jobId).delete();
   }
 
-  // ───────────────────────────────────────────
-  // Apply to Job
-  // ───────────────────────────────────────────
-
   @override
   Future<void> applyToJob({
     required String jobId,
-    required String message,
-    required String cvFilePath,
+    required String recruiterId,
+    required String studentId,
+    required String studentName,
   }) async {
-    final currentUser = _firebaseAuth.currentUser;
-    if (currentUser == null) {
-      throw UserNotLoggedInException();
-    }
+    final existing = await _applications
+        .where('jobId', isEqualTo: jobId)
+        .where('studentId', isEqualTo: studentId)
+        .limit(1)
+        .get();
 
-    final userSnapshot = await _users.doc(currentUser.uid).get();
-    final userData = userSnapshot.data() ?? {};
-    final studentName = userData['fullName'] as String? ?? 'Student';
-
-    final cvRef = _storage.ref().child(
-          'cvs/${currentUser.uid}/$jobId/${DateTime.now().millisecondsSinceEpoch}.pdf',
-        );
-
-    final uploadTask = await cvRef.putFile(File(cvFilePath));
-    final cvUrl = await uploadTask.ref.getDownloadURL();
+    if (existing.docs.isNotEmpty) return;
 
     await _applications.add({
       'jobId': jobId,
-      'studentId': currentUser.uid,
+      'recruiterId': recruiterId,
+      'studentId': studentId,
       'studentName': studentName,
-      'cvUrl': cvUrl,
-      'message': message,
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ───────────────────────────────────────────
-  // Stream Applications for a Job
-  // ───────────────────────────────────────────
+  @override
+  Future<void> updateApplicationStatus({
+    required String applicationId,
+    required String status,
+  }) async {
+    await _applications.doc(applicationId).update({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
+  // ✅ Real-time stream for applications
   @override
   Stream<List<JobApplicationModel>> streamApplicationsForJob(String jobId) {
     return _applications
         .where('jobId', isEqualTo: jobId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snap) => snap.docs.map(JobApplicationModel.fromFirestore).toList(),
-        );
+        .map((snap) =>
+            snap.docs.map(JobApplicationModel.fromFirestore).toList());
   }
 }

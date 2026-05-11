@@ -13,8 +13,9 @@ class ApplyToJob implements UseCase<void, ApplyToJobParams> {
   Future<Either<Failure, void>> call(ApplyToJobParams params) {
     return repository.applyToJob(
       jobId: params.jobId,
-      message: params.message,
-      cvFilePath: params.cvFilePath,
+      recruiterId: params.recruiterId,
+      studentId: params.studentId,
+      studentName: params.studentName,
     );
   }
 }
@@ -22,11 +23,13 @@ class ApplyToJob implements UseCase<void, ApplyToJobParams> {
 class ApplyToJobParams {
   const ApplyToJobParams({
     required this.jobId,
-    required this.message,
-    required this.cvFilePath,
+    required this.recruiterId,
+    required this.studentId,
+    required this.studentName,
   });
 
   final String jobId;
-  final String message;
-  final String cvFilePath;
+  final String recruiterId;
+  final String studentId;
+  final String studentName;
 }

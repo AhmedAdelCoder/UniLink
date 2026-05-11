@@ -8,8 +8,8 @@ import '../../domain/entities/job.dart';
 import '../../domain/usecases/apply_to_job.dart';
 import '../../domain/usecases/create_job.dart';
 import '../../domain/usecases/delete_job.dart';
-import '../../domain/usecases/stream_company_jobs.dart';
 import '../../domain/usecases/stream_followed_jobs.dart';
+import '../../domain/usecases/stream_recruiter_jobs.dart';
 
 part 'jobs_event.dart';
 part 'jobs_state.dart';
@@ -17,7 +17,7 @@ part 'jobs_state.dart';
 class JobsBloc extends Bloc<JobsEvent, JobsState> {
   JobsBloc({
     required this.streamFollowedJobs,
-    required this.streamCompanyJobs,
+    required this.streamRecruiterJobs,
     required this.createJob,
     required this.deleteJob,
     required this.applyToJob,
@@ -32,7 +32,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
   }
 
   final StreamFollowedJobs streamFollowedJobs;
-  final StreamCompanyJobs streamCompanyJobs;
+  final StreamRecruiterJobs streamRecruiterJobs;
   final CreateJob createJob;
   final DeleteJob deleteJob;
   final ApplyToJob applyToJob;
@@ -48,9 +48,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
 
     _jobsSubscription = streamFollowedJobs(event.studentId).listen(
       (jobs) => add(JobsDataUpdated(jobs)),
-      onError: (Object error) {
-        addError(error, StackTrace.current);
-      },
+      onError: (Object error) => addError(error, StackTrace.current),
     );
   }
 
@@ -59,13 +57,12 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     Emitter<JobsState> emit,
   ) async {
     await _jobsSubscription?.cancel();
+    // ✅ emit loading true so UI shows spinner briefly
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
-    _jobsSubscription = streamCompanyJobs(event.companyId).listen(
+    _jobsSubscription = streamRecruiterJobs(event.recruiterId).listen(
       (jobs) => add(JobsDataUpdated(jobs)),
-      onError: (Object error) {
-        addError(error, StackTrace.current);
-      },
+      onError: (Object error) => addError(error, StackTrace.current),
     );
   }
 
@@ -73,6 +70,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsDataUpdated event,
     Emitter<JobsState> emit,
   ) {
+    
     emit(
       state.copyWith(
         isLoading: false,
@@ -86,31 +84,36 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsCreateRequested event,
     Emitter<JobsState> emit,
   ) async {
-    emit(state.copyWith(isSubmitting: true, errorMessage: null, infoMessage: null));
+    emit(state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      infoMessage: null,
+    ));
+
     final result = await createJob(
       CreateJobParams(
+        recruiterId: event.recruiterId,
+        recruiterName: event.recruiterName,
+        recruiterAvatarUrl: event.recruiterAvatarUrl,
         title: event.title,
         description: event.description,
         skills: event.skills,
         jobType: event.jobType,
         salaryRange: event.salaryRange,
         location: event.location,
+        formUrl: event.formUrl,
       ),
     );
 
     result.fold(
-      (failure) => emit(
-        state.copyWith(
-          isSubmitting: false,
-          errorMessage: _mapFailure(failure),
-        ),
-      ),
-      (_) => emit(
-        state.copyWith(
-          isSubmitting: false,
-          infoMessage: 'Job posted successfully.',
-        ),
-      ),
+      (failure) => emit(state.copyWith(
+        isSubmitting: false,
+        errorMessage: _mapFailure(failure),
+      )),
+      (_) => emit(state.copyWith(
+        isSubmitting: false,
+        infoMessage: 'Job posted successfully.',
+      )),
     );
   }
 
@@ -118,21 +121,21 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsDeleteRequested event,
     Emitter<JobsState> emit,
   ) async {
-    emit(state.copyWith(isSubmitting: true, errorMessage: null, infoMessage: null));
+    emit(state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      infoMessage: null,
+    ));
     final result = await deleteJob(DeleteJobParams(event.jobId));
     result.fold(
-      (failure) => emit(
-        state.copyWith(
-          isSubmitting: false,
-          errorMessage: _mapFailure(failure),
-        ),
-      ),
-      (_) => emit(
-        state.copyWith(
-          isSubmitting: false,
-          infoMessage: 'Job deleted.',
-        ),
-      ),
+      (failure) => emit(state.copyWith(
+        isSubmitting: false,
+        errorMessage: _mapFailure(failure),
+      )),
+      (_) => emit(state.copyWith(
+        isSubmitting: false,
+        infoMessage: 'Job deleted.',
+      )),
     );
   }
 
@@ -140,28 +143,30 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsApplyRequested event,
     Emitter<JobsState> emit,
   ) async {
-    emit(state.copyWith(isApplying: true, errorMessage: null, infoMessage: null));
+    emit(state.copyWith(
+      isApplying: true,
+      errorMessage: null,
+      infoMessage: null,
+    ));
+
     final result = await applyToJob(
       ApplyToJobParams(
         jobId: event.jobId,
-        message: event.message,
-        cvFilePath: event.cvFilePath,
+        recruiterId: event.recruiterId,
+        studentId: event.studentId,
+        studentName: event.studentName,
       ),
     );
 
     result.fold(
-      (failure) => emit(
-        state.copyWith(
-          isApplying: false,
-          errorMessage: _mapFailure(failure),
-        ),
-      ),
-      (_) => emit(
-        state.copyWith(
-          isApplying: false,
-          infoMessage: 'Application submitted successfully.',
-        ),
-      ),
+      (failure) => emit(state.copyWith(
+        isApplying: false,
+        errorMessage: _mapFailure(failure),
+      )),
+      (_) => emit(state.copyWith(
+        isApplying: false,
+        infoMessage: 'Application submitted successfully.',
+      )),
     );
   }
 
@@ -169,12 +174,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsClearMessage event,
     Emitter<JobsState> emit,
   ) {
-    emit(
-      state.copyWith(
-        errorMessage: null,
-        infoMessage: null,
-      ),
-    );
+    emit(state.copyWith(errorMessage: null, infoMessage: null));
   }
 
   String _mapFailure(Failure failure) => failure.message;

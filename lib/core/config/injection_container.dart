@@ -1,5 +1,3 @@
-// lib/core/config/injection_container.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -31,7 +29,7 @@ import '../../features/jobs/domain/repositories/jobs_repository.dart';
 import '../../features/jobs/domain/usecases/apply_to_job.dart';
 import '../../features/jobs/domain/usecases/create_job.dart';
 import '../../features/jobs/domain/usecases/delete_job.dart';
-import '../../features/jobs/domain/usecases/stream_company_jobs.dart';
+import '../../features/jobs/domain/usecases/stream_recruiter_jobs.dart';
 import '../../features/jobs/domain/usecases/stream_followed_jobs.dart';
 import '../../features/jobs/domain/usecases/stream_job_applications.dart';
 import '../../features/jobs/presentation/bloc/jobs_bloc.dart';
@@ -70,9 +68,7 @@ Future<void> initDependencies() async {
   // =========================
 
   sl.registerLazySingleton<ConnectionsRemoteDataSource>(
-    () => ConnectionsRemoteDataSourceImpl(
-      firestore: sl<FirebaseFirestore>(),
-    ),
+    () => ConnectionsRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
   );
 
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -108,18 +104,15 @@ Future<void> initDependencies() async {
   );
 
   sl.registerLazySingleton<FollowsRemoteDataSource>(
-    () => FollowsRemoteDataSourceImpl(
-      firestore: sl<FirebaseFirestore>(),
-    ),
+    () => FollowsRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
   );
 
-  // 🔥 FIXED HERE (NO null anymore)
   sl.registerLazySingleton<JobsRemoteDataSource>(
     () => JobsRemoteDataSourceImpl(
       firestore: sl<FirebaseFirestore>(),
       firebaseAuth: sl<fb.FirebaseAuth>(),
       cloudinaryService: sl<CloudinaryService>(),
-      storage: sl<FirebaseStorage>(), // ✅ FIXED
+      storage: sl<FirebaseStorage>(),
     ),
   );
 
@@ -128,27 +121,22 @@ Future<void> initDependencies() async {
   // =========================
 
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      remoteDataSource: sl<AuthRemoteDataSource>(),
-    ),
+    () => AuthRepositoryImpl(remoteDataSource: sl<AuthRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<PostRepository>(
-    () => PostRepositoryImpl(
-      remoteDataSource: sl<PostsRemoteDataSource>(),
-    ),
+    () => PostRepositoryImpl(remoteDataSource: sl<PostsRemoteDataSource>()),
   );
 
   sl.registerLazySingleton<FollowsRepository>(
-    () => FollowsRepositoryImpl(
-      remoteDataSource: sl<FollowsRemoteDataSource>(),
-    ),
+    () => FollowsRepositoryImpl(remoteDataSource: sl<FollowsRemoteDataSource>()),
   );
 
+  // ✅ FIXED: using connectionsRemoteDataSource instead of followsRepository
   sl.registerLazySingleton<JobsRepository>(
     () => JobsRepositoryImpl(
       jobsRemoteDataSource: sl<JobsRemoteDataSource>(),
-      followsRepository: sl<FollowsRepository>(),
+      connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
     ),
   );
 
@@ -174,7 +162,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => WatchFollowedCompanyIds(sl<FollowsRepository>()));
 
   sl.registerLazySingleton(() => StreamFollowedJobs(sl<JobsRepository>()));
-  sl.registerLazySingleton(() => StreamCompanyJobs(sl<JobsRepository>()));
+  sl.registerLazySingleton(() => StreamRecruiterJobs(sl<JobsRepository>()));
   sl.registerLazySingleton(() => CreateJob(sl<JobsRepository>()));
   sl.registerLazySingleton(() => DeleteJob(sl<JobsRepository>()));
   sl.registerLazySingleton(() => ApplyToJob(sl<JobsRepository>()));
@@ -208,7 +196,7 @@ Future<void> initDependencies() async {
   sl.registerFactory(
     () => JobsBloc(
       streamFollowedJobs: sl<StreamFollowedJobs>(),
-      streamCompanyJobs: sl<StreamCompanyJobs>(),
+      streamRecruiterJobs: sl<StreamRecruiterJobs>(),
       createJob: sl<CreateJob>(),
       deleteJob: sl<DeleteJob>(),
       applyToJob: sl<ApplyToJob>(),

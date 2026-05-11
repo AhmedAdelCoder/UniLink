@@ -9,7 +9,6 @@ abstract class JobsEvent extends Equatable {
 
 class JobsStartFeed extends JobsEvent {
   const JobsStartFeed(this.studentId);
-
   final String studentId;
 
   @override
@@ -17,17 +16,15 @@ class JobsStartFeed extends JobsEvent {
 }
 
 class JobsStartRecruiterJobs extends JobsEvent {
-  const JobsStartRecruiterJobs(this.companyId);
-
-  final String companyId;
+  const JobsStartRecruiterJobs(this.recruiterId);
+  final String recruiterId;
 
   @override
-  List<Object?> get props => [companyId];
+  List<Object?> get props => [recruiterId];
 }
 
 class JobsDataUpdated extends JobsEvent {
   const JobsDataUpdated(this.jobs);
-
   final List<Job> jobs;
 
   @override
@@ -36,54 +33,81 @@ class JobsDataUpdated extends JobsEvent {
 
 class JobsCreateRequested extends JobsEvent {
   const JobsCreateRequested({
+    required this.recruiterId,
+    required this.recruiterName,
+    this.recruiterAvatarUrl,
     required this.title,
     required this.description,
     required this.skills,
     required this.jobType,
     required this.salaryRange,
     required this.location,
+    this.formUrl,
   });
 
+  final String recruiterId;
+  final String recruiterName;
+  final String? recruiterAvatarUrl;
   final String title;
   final String description;
   final List<String> skills;
   final String jobType;
   final String salaryRange;
   final String location;
+  final String? formUrl;
 
   @override
   List<Object?> get props => [
+        recruiterId,
+        recruiterName,
+        recruiterAvatarUrl,
         title,
         description,
         skills,
         jobType,
         salaryRange,
         location,
+        formUrl,
       ];
 }
 
 class JobsDeleteRequested extends JobsEvent {
   const JobsDeleteRequested(this.jobId);
-
   final String jobId;
 
   @override
   List<Object?> get props => [jobId];
 }
 
+
 class JobsApplyRequested extends JobsEvent {
   const JobsApplyRequested({
     required this.jobId,
-    required this.cvFilePath,
-    this.message = '',
+    required this.recruiterId,
+    required this.studentId,
+    required this.studentName,
   });
 
   final String jobId;
-  final String cvFilePath;
-  final String message;
+  final String recruiterId;
+  final String studentId;
+  final String studentName;
 
   @override
-  List<Object?> get props => [jobId, cvFilePath, message];
+  List<Object?> get props => [jobId, recruiterId, studentId, studentName];
+}
+
+class JobsUpdateApplicationStatus extends JobsEvent {
+  const JobsUpdateApplicationStatus({
+    required this.applicationId,
+    required this.status,
+  });
+
+  final String applicationId;
+  final String status;
+
+  @override
+  List<Object?> get props => [applicationId, status];
 }
 
 class JobsClearMessage extends JobsEvent {

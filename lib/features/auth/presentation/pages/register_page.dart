@@ -1,8 +1,8 @@
-// ignore_for_file: use_build_context_synchronously
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// ignore: unused_import
+
 import '../../../request/request.dart';
 import '../../../../core/utils/input_validators.dart';
 import '../../domain/entities/app_user.dart';
@@ -85,7 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      /// 🔥 LOGO
+                      
                       Center(
                         child: Column(
                           children: [
@@ -107,7 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                       const SizedBox(height: 30),
 
-                      /// 🔥 CARD
+                      
                       Card(
                         elevation: 6,
                         shape: RoundedRectangleBorder(
@@ -122,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               crossAxisAlignment:
                                   CrossAxisAlignment.stretch,
                               children: [
-                                /// Name
+                                
                                 TextFormField(
                                   controller: _nameController,
                                   decoration: InputDecoration(
@@ -140,7 +140,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                                 const SizedBox(height: 16),
 
-                                /// Email
+                                
                                 TextFormField(
                                   controller: _emailController,
                                   decoration: InputDecoration(
@@ -160,7 +160,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                                 const SizedBox(height: 16),
 
-                                /// Password
+                                
                                 TextFormField(
                                   controller:
                                       _passwordController,
@@ -181,7 +181,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                                 const SizedBox(height: 24),
 
-                                /// Role
+                                
                                 Text(
                                   'Role',
                                   style: Theme.of(context)
@@ -214,7 +214,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                                 const SizedBox(height: 24),
 
-                                /// Button
+                                
                                 SizedBox(
                                   height: 50,
                                   child: FilledButton(

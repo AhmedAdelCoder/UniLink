@@ -66,7 +66,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      /// 🔥 LOGO
+                      
                       Center(
                         child: Column(
                           children: [
@@ -88,7 +88,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                       const SizedBox(height: 30),
 
-                      /// 🔥 CARD
+                      
                       Card(
                         elevation: 6,
                         shape: RoundedRectangleBorder(
@@ -103,7 +103,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                               crossAxisAlignment:
                                   CrossAxisAlignment.stretch,
                               children: [
-                                /// Title
+                                
                                 Text(
                                   'Reset Password',
                                   textAlign: TextAlign.center,
@@ -117,7 +117,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                                 const SizedBox(height: 8),
 
-                                /// Description
+                                
                                 Text(
                                   'Enter your email and we’ll send you a reset link.',
                                   textAlign: TextAlign.center,
@@ -128,7 +128,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                                 const SizedBox(height: 24),
 
-                                /// Email Field
+                                
                                 TextFormField(
                                   controller: _emailController,
                                   decoration: InputDecoration(
@@ -148,7 +148,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                                 const SizedBox(height: 24),
 
-                                /// Button
+                                
                                 SizedBox(
                                   height: 50,
                                   child: FilledButton(
@@ -182,7 +182,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
                                 const SizedBox(height: 12),
 
-                                /// Back
+                                
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.pop(context),

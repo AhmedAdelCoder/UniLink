@@ -33,7 +33,7 @@ class CommentModel extends Comment {
   Map<String, dynamic> toFirestore() {
     return {
       'userId': userId,
-      'authorId': userId, // ✅ FIX: مطلوب عشان الـ Firestore Rule تشتغل عند الحذف
+      'authorId': userId, 
       'userName': userName,
       'userPhotoUrl': userPhotoUrl,
       'text': text,

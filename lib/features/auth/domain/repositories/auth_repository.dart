@@ -11,8 +11,8 @@ abstract class AuthRepository {
     required UserRole role,
   });
 
-  /// Returns true if an account already exists for [email].
-  /// Uses Firebase Auth sign-in methods to avoid throwing during registration.
+  
+  
   Future<Either<Failure, bool>> isEmailRegistered({required String email});
 
   Future<Either<Failure, AppUser>> login({

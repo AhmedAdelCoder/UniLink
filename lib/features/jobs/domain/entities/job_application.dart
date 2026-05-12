@@ -16,7 +16,7 @@ class JobApplication extends Equatable {
   final String recruiterId;
   final String studentId;
   final String studentName;
-  final String status; // pending / accepted / rejected
+  final String status; 
   final DateTime createdAt;
 
   @override

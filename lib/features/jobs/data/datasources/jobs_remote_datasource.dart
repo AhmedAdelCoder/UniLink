@@ -141,16 +141,16 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     required String studentId,
     required String studentName,
   }) async {
-    // ✅ FIXED: the old duplicate check used two .where() clauses on different
-    // fields (jobId + studentId), which requires a composite Firestore index.
-    // Without that index, the .get() throws [failed-precondition] silently —
-    // the application is never written, so the recruiter never sees it.
-    //
-    // Fix: use a deterministic document ID = "jobId_studentId".
-    // This means the document either exists or it doesn't — no query needed,
-    // no index required, and duplicate prevention is guaranteed by Firestore
-    // itself (set with merge:false will just overwrite, but we check first
-    // with a single doc get which needs no index at all).
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     final docId = '${jobId}_$studentId';
     final docRef = _applications.doc(docId);
 

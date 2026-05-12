@@ -51,21 +51,21 @@ import '../../core/services/cloudinary_service.dart';
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
-  // =========================
-  // Firebase
-  // =========================
+  
+  
+  
   sl.registerLazySingleton<fb.FirebaseAuth>(() => fb.FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
-  // =========================
-  // Services
-  // =========================
+  
+  
+  
   sl.registerLazySingleton<CloudinaryService>(() => CloudinaryService());
 
-  // =========================
-  // DATA SOURCES
-  // =========================
+  
+  
+  
 
   sl.registerLazySingleton<ConnectionsRemoteDataSource>(
     () => ConnectionsRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
@@ -116,9 +116,9 @@ Future<void> initDependencies() async {
     ),
   );
 
-  // =========================
-  // REPOSITORIES
-  // =========================
+  
+  
+  
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl<AuthRemoteDataSource>()),
@@ -132,7 +132,7 @@ Future<void> initDependencies() async {
     () => FollowsRepositoryImpl(remoteDataSource: sl<FollowsRemoteDataSource>()),
   );
 
-  // ✅ FIXED: using connectionsRemoteDataSource instead of followsRepository
+  
   sl.registerLazySingleton<JobsRepository>(
     () => JobsRepositoryImpl(
       jobsRemoteDataSource: sl<JobsRemoteDataSource>(),
@@ -140,9 +140,9 @@ Future<void> initDependencies() async {
     ),
   );
 
-  // =========================
-  // USE CASES
-  // =========================
+  
+  
+  
 
   sl.registerLazySingleton(() => Login(sl<AuthRepository>()));
   sl.registerLazySingleton(() => Register(sl<AuthRepository>()));
@@ -168,9 +168,9 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => ApplyToJob(sl<JobsRepository>()));
   sl.registerLazySingleton(() => StreamJobApplications(sl<JobsRepository>()));
 
-  // =========================
-  // BLOCS
-  // =========================
+  
+  
+  
 
   sl.registerFactory(
     () => AuthBloc(

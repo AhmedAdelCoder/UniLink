@@ -201,7 +201,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     result.fold(
       (failure) {
-        // revert optimistic update on failure
+        
         emit(
           state.copyWith(
             errorMessage: _mapFailure(failure),

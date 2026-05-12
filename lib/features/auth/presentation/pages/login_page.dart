@@ -71,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      /// 🔥 LOGO
+                      
                       Center(
                         child: Image.asset(
                           'assets/images/logo.png', 
@@ -81,7 +81,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       const SizedBox(height: 16),
 
-                      /// 🔥 APP NAME
+                      
                       const Text(
                         'UniLink',
                         textAlign: TextAlign.center,
@@ -112,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
                             key: _formKey,
                             child: Column(
                               children: [
-                                /// Email
+                                
                                 TextFormField(
                                   controller: _emailController,
                                   decoration: InputDecoration(
@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
 
                                 const SizedBox(height: 16),
 
-                                /// Password
+                                
                                 TextFormField(
                                   controller: _passwordController,
                                   decoration: InputDecoration(
@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
 
                                 const SizedBox(height: 12),
 
-                                /// Forgot password
+                                
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
@@ -201,7 +201,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       const SizedBox(height: 16),
 
-                      /// Register
+                      
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.center,

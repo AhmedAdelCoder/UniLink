@@ -22,7 +22,7 @@ import '../../../follows/domain/usecases/unfollow_company.dart';
 import '../../data/profile_remote_datasource.dart';
 
 class ProfilePage extends StatefulWidget {
-  final String? userId; // null = my profile
+  final String? userId; 
   const ProfilePage({super.key, this.userId});
 
   @override
@@ -30,7 +30,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // ================= CV =================
+  
 
   Future<void> _enterCvUrl(String uid) async {
     final ctrl = TextEditingController();
@@ -213,7 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // ✅ زر رفع الـ CV (بس لو isMe)
+                                
                                 if (isMe)
                                   OutlinedButton.icon(
                                     onPressed: () => _enterCvUrl(uid),
@@ -222,7 +222,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                 if (isMe) const SizedBox(height: 12),
 
-                                // ✅ عرض الـ CV لو موجود
+                                
                                 if ((user.cvUrl ?? '').trim().isNotEmpty)
                                   _documentRow(
                                     context,
@@ -783,7 +783,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // ================= PHOTO =================
+  
   Future<void> _pickAndUploadPhoto(BuildContext context, String uid) async {
     final picker = ImagePicker();
     final x = await picker.pickImage(
@@ -811,7 +811,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // ================= CHAT =================
+  
   Future<void> _openChat(BuildContext context, AppUserModel other) async {
     final auth = context.read<AuthBloc>().state.user;
     if (auth == null) return;
@@ -819,7 +819,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final chat = sl<ChatRemoteDataSource>();
 
     try {
-      // منع فتح شات مع نفسك
+      
       if (auth.id == other.id) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("You can't message yourself")),
@@ -855,7 +855,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // ================= EDIT =================
+  
   Future<void> _openEditSheet(BuildContext context, AppUser user) async {
     final nameCtrl = TextEditingController(text: user.fullName);
     final bioCtrl = TextEditingController(text: user.bio);

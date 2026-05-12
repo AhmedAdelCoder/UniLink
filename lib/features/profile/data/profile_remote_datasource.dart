@@ -106,13 +106,13 @@ Future<void> saveCvUrl(String uid, String url) async {
       throw StateError('Not authenticated');
     }
 
-    // 🚀 رفع الصورة على Cloudinary
+    
     final uploadedUrl = await _cloudinaryService.uploadImage(file);
     if (uploadedUrl == null) {
       throw StateError('Failed to upload image to Cloudinary');
     }
 
-    // تحديث رابط الصورة في Firestore
+    
     await _users.doc(uid).update({
       'photoUrl': uploadedUrl,
       'updatedAt': FieldValue.serverTimestamp(),

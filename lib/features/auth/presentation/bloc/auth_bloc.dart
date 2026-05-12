@@ -60,9 +60,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // =========================
-  // تسجيل الدخول
-  // =========================
+  
+  
+  
   Future<void> _onLoginRequested(
     AuthLoginRequested event,
     Emitter<AuthState> emit,
@@ -82,7 +82,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated, // بعد login مباشرة
+          status: AuthStatus.authenticated, 
           user: user,
           errorMessage: null,
         ),
@@ -90,9 +90,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // =========================
-  // التسجيل
-  // =========================
+  
+  
+  
   Future<void> _onRegisterRequested(
     AuthRegisterRequested event,
     Emitter<AuthState> emit,
@@ -117,7 +117,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated, // ✅ بدل success
+          status: AuthStatus.authenticated, 
           user: user,
           errorMessage: null,
         ),
@@ -125,9 +125,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // =========================
-  // إعادة تعيين كلمة المرور
-  // =========================
+  
+  
+  
   Future<void> _onResetPasswordRequested(
     AuthResetPasswordRequested event,
     Emitter<AuthState> emit,

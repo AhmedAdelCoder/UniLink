@@ -11,7 +11,7 @@ import '../datasources/posts_remote_datasource.dart';
 class PostRepositoryImpl implements PostRepository {
   final PostsRemoteDataSource remoteDataSource;
 
-  // Map Post.id -> Firestore document snapshot for pagination
+  
   final Map<String, DocumentSnapshot<Map<String, dynamic>>> _postSnapshots = {};
 
   PostRepositoryImpl({required this.remoteDataSource});
@@ -28,7 +28,7 @@ class PostRepositoryImpl implements PostRepository {
         limit: limit,
       );
 
-      // Maintain mapping for pagination using the result.lastDocument
+      
       if (result.lastDocument != null) {
         _postSnapshots[result.lastDocument!.id] = result.lastDocument!;
       }
@@ -112,7 +112,7 @@ class PostRepositoryImpl implements PostRepository {
     int limit = 20,
   }) async {
     try {
-      // Simple implementation without pagination cursor for comments yet
+      
       final comments = await remoteDataSource.getComments(
         postId: postId,
         startAfter: null,

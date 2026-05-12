@@ -1,9 +1,8 @@
-import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,8 +21,7 @@ import '../../../follows/domain/usecases/follow_company.dart';
 import '../../../follows/domain/usecases/unfollow_company.dart';
 import '../../data/profile_remote_datasource.dart';
 
-
-class ProfilePage extends StatefulWidget  {
+class ProfilePage extends StatefulWidget {
   final String? userId; // null = my profile
   const ProfilePage({super.key, this.userId});
 
@@ -32,48 +30,53 @@ class ProfilePage extends StatefulWidget  {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-
-
   // ================= CV =================
 
-Future<void> _pickAndUploadCv(String uid) async {
+  Future<void> _enterCvUrl(String uid) async {
+    final ctrl = TextEditingController();
 
-  //   if (await Permission.storage.isDenied) {
-  //   await Permission.storage.request();
-  // }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('CV Link'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: 'https://drive.google.com/...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
 
-  final result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['pdf'],
-    allowCompression: false,
-    withReadStream: false,  // ✅ أضف ده
-    withData: false, 
-  );
+    if (confirmed != true || ctrl.text.trim().isEmpty) return;
 
-  if (result == null || result.files.single.path == null) return;
-
-  final file = File(result.files.single.path!);
-
-  try {
-    await sl<ProfileRemoteDataSource>().uploadCv(uid, file);
-
-    // ✅ هنا
-    if (mounted) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(content: Text('CV uploaded successfully')),
-        );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
+    try {
+      await sl<ProfileRemoteDataSource>().saveCvUrl(uid, ctrl.text.trim());
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(const SnackBar(content: Text('CV link saved')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -112,9 +115,7 @@ Future<void> _pickAndUploadCv(String uid) async {
             }
 
             return Scaffold(
-              appBar: AppBar(
-                title: Text(isMe ? "My Profile" : "User Profile"),
-              ),
+              appBar: AppBar(title: Text(isMe ? "My Profile" : "User Profile")),
               body: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
                 children: [
@@ -206,40 +207,49 @@ Future<void> _pickAndUploadCv(String uid) async {
                           ),
                           const SizedBox(height: 16),
                           _sectionCard(
-                                            context: context,
-                                            title: 'CV & Documents',
-                                            subtitle: 'Resume and supporting links',
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                // ✅ زر رفع الـ CV (بس لو isMe)
-                                                  if (isMe)
-                                                      OutlinedButton.icon(
-                                                        onPressed: () => _pickAndUploadCv(uid), // ✅ شيل context
-                                                        icon: const Icon(Icons.upload_file_outlined),
-                                                        label: const Text('Upload CV (PDF)'),
-                                                      ),
-                                                if (isMe) const SizedBox(height: 12),
+                            context: context,
+                            title: 'CV & Documents',
+                            subtitle: 'Resume and supporting links',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // ✅ زر رفع الـ CV (بس لو isMe)
+                                if (isMe)
+                                  OutlinedButton.icon(
+                                    onPressed: () => _enterCvUrl(uid),
+                                    icon: const Icon(Icons.link),
+                                    label: const Text('Add CV Link'),
+                                  ),
+                                if (isMe) const SizedBox(height: 12),
 
-                                                // ✅ عرض الـ CV لو موجود
-                                                if ((user.cvUrl ?? '').trim().isNotEmpty)
-                                                  _documentRow(context, label: 'CV / Resume', value: user.cvUrl!)
-                                                else
-                                                  Text(
-                                                    'No CV uploaded yet.',
-                                                    style: Theme.of(context).textTheme.bodyMedium,
-                                                  ),
+                                // ✅ عرض الـ CV لو موجود
+                                if ((user.cvUrl ?? '').trim().isNotEmpty)
+                                  _documentRow(
+                                    context,
+                                    label: 'CV / Resume',
+                                    value: user.cvUrl!,
+                                  )
+                                else
+                                  Text(
+                                    'No CV uploaded yet.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
 
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  'Tip: upload your resume as PDF.',
-                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Tip: upload your resume as PDF.',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           _sectionCard(
                             context: context,
@@ -256,10 +266,8 @@ Future<void> _pickAndUploadCv(String uid) async {
                                 : Column(
                                     children: user.projects
                                         .map(
-                                          (p) => _projectCard(
-                                            context,
-                                            project: p,
-                                          ),
+                                          (p) =>
+                                              _projectCard(context, project: p),
                                         )
                                         .toList(),
                                   ),
@@ -299,8 +307,7 @@ Future<void> _pickAndUploadCv(String uid) async {
                           ),
                           const SizedBox(height: 20),
                           if (isMe) _buildEditActions(context, user),
-                          if (!isMe)
-                            _buildRelationshipAction(context, user),
+                          if (!isMe) _buildRelationshipAction(context, user),
                         ],
                       ),
                     ),
@@ -314,7 +321,6 @@ Future<void> _pickAndUploadCv(String uid) async {
     );
   }
 
-
   Widget _buildProfileHeader(
     BuildContext context,
     AppUserModel user,
@@ -326,9 +332,9 @@ Future<void> _pickAndUploadCv(String uid) async {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                alpha: 0.55,
-              ),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.55),
         ),
       ),
       child: Padding(
@@ -368,10 +374,8 @@ Future<void> _pickAndUploadCv(String uid) async {
                       Text(
                         user.email,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Chip(
@@ -383,8 +387,9 @@ Future<void> _pickAndUploadCv(String uid) async {
                         side: BorderSide(
                           color: Theme.of(context).colorScheme.primaryContainer,
                         ),
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primaryContainer,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
@@ -465,10 +470,7 @@ Future<void> _pickAndUploadCv(String uid) async {
                     return;
                   }
                   await sl<FollowCompany>().call(
-                    FollowCompanyParams(
-                      studentId: me.id,
-                      companyId: companyId,
-                    ),
+                    FollowCompanyParams(studentId: me.id, companyId: companyId),
                   );
                 },
                 icon: Icon(isFollowing ? Icons.check : Icons.add),
@@ -495,7 +497,10 @@ Future<void> _pickAndUploadCv(String uid) async {
           case ConnectionStatus.incomingPending:
             return FilledButton(
               onPressed: () async {
-                await connections.acceptRequest(myUid: me.id, otherUid: other.id);
+                await connections.acceptRequest(
+                  myUid: me.id,
+                  otherUid: other.id,
+                );
               },
               child: const Text('Accept Connection'),
             );
@@ -531,9 +536,9 @@ Future<void> _pickAndUploadCv(String uid) async {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                alpha: 0.55,
-              ),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.55),
         ),
       ),
       child: Padding(
@@ -551,8 +556,8 @@ Future<void> _pickAndUploadCv(String uid) async {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 14),
             child,
@@ -575,11 +580,7 @@ Future<void> _pickAndUploadCv(String uid) async {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Text(label),
-        ],
+        children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)],
       ),
     );
   }
@@ -596,9 +597,9 @@ Future<void> _pickAndUploadCv(String uid) async {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.28,
-            ),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.28),
       ),
       child: Row(
         children: [
@@ -608,17 +609,14 @@ Future<void> _pickAndUploadCv(String uid) async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
+                Text(label, style: Theme.of(context).textTheme.labelLarge),
                 Text(
                   hasValue ? clean : 'Not provided',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: hasValue
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: hasValue
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -629,9 +627,9 @@ Future<void> _pickAndUploadCv(String uid) async {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: clean));
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('$label copied')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('$label copied')));
                 }
               },
               icon: const Icon(Icons.copy, size: 18),
@@ -641,47 +639,56 @@ Future<void> _pickAndUploadCv(String uid) async {
     );
   }
 
-Widget _documentRow(
-  BuildContext context, {
-  required String label,
-  required String value,
-}) {
-  return Row(
-    children: [
-      const Icon(Icons.description_outlined, size: 18),
-      const SizedBox(width: 8),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.labelLarge),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+  Widget _documentRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        const Icon(Icons.description_outlined, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.labelLarge),
+              GestureDetector(
+                onTap: () async {
+                  final uri = Uri.tryParse(value);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                     decoration: TextDecoration.underline,
                   ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      IconButton(
-        tooltip: 'Copy link',
-        icon: const Icon(Icons.copy, size: 18),
-        onPressed: () async {
-          await Clipboard.setData(ClipboardData(text: value));
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('CV link copied')),
-            );
-          }
-        },
-      ),
-    ],
-  );
-}
+        IconButton(
+          tooltip: 'Copy link',
+          icon: const Icon(Icons.copy, size: 18),
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: value));
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('CV link copied')));
+            }
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _projectCard(BuildContext context, {required UserProject project}) {
     final hasLink = (project.link ?? '').trim().isNotEmpty;
     return Container(
@@ -691,9 +698,9 @@ Widget _documentRow(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(
-                alpha: 0.5,
-              ),
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -748,9 +755,9 @@ Widget _documentRow(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.25,
-            ),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
       ),
       child: Row(
         children: [
@@ -788,66 +795,65 @@ Widget _documentRow(
     if (x == null || !context.mounted) return;
 
     try {
-      await sl<ProfileRemoteDataSource>()
-          .uploadProfilePhoto(uid, File(x.path));
+      await sl<ProfileRemoteDataSource>().uploadProfilePhoto(uid, File(x.path));
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile photo updated')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     }
   }
 
   // ================= CHAT =================
- Future<void> _openChat(BuildContext context, AppUserModel other) async {
-  final auth = context.read<AuthBloc>().state.user;
-  if (auth == null) return;
+  Future<void> _openChat(BuildContext context, AppUserModel other) async {
+    final auth = context.read<AuthBloc>().state.user;
+    if (auth == null) return;
 
-  final chat = sl<ChatRemoteDataSource>();
+    final chat = sl<ChatRemoteDataSource>();
 
-  try {
-    // منع فتح شات مع نفسك
-    if (auth.id == other.id) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You can't message yourself")),
+    try {
+      // منع فتح شات مع نفسك
+      if (auth.id == other.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("You can't message yourself")),
+        );
+        return;
+      }
+
+      await chat.ensureThread(
+        myUid: auth.id,
+        otherUid: other.id,
+        myName: auth.fullName,
+        otherName: other.fullName,
       );
-      return;
-    }
 
-    await chat.ensureThread(
-      myUid: auth.id,
-      otherUid: other.id,
-      myName: auth.fullName,
-      otherName: other.fullName,
-    );
+      final threadId = chat.threadIdFor(auth.id, other.id);
 
-    final threadId = chat.threadIdFor(auth.id, other.id);
+      if (!context.mounted) return;
 
-    if (!context.mounted) return;
-
-    Navigator.of(context).pushNamed(
-      ChatDetailPage.routeName,
-      arguments: ChatDetailArgs(
-        threadId: threadId,
-        otherUserId: other.id,
-        otherUserName: other.fullName,
-      ),
-    );
-  } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to open chat: $e")),
+      Navigator.of(context).pushNamed(
+        ChatDetailPage.routeName,
+        arguments: ChatDetailArgs(
+          threadId: threadId,
+          otherUserId: other.id,
+          otherUserName: other.fullName,
+        ),
       );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to open chat: $e")));
+      }
     }
   }
-}
 
   // ================= EDIT =================
   Future<void> _openEditSheet(BuildContext context, AppUser user) async {
@@ -887,9 +893,9 @@ Widget _documentRow(
                     children: [
                       Text(
                         'Edit Profile',
-                        style: Theme.of(
-                          ctx,
-                        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                        style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       TextField(
@@ -1043,9 +1049,9 @@ Widget _documentRow(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: Theme.of(ctx)
-                                          .colorScheme
-                                          .outlineVariant,
+                                      color: Theme.of(
+                                        ctx,
+                                      ).colorScheme.outlineVariant,
                                     ),
                                   ),
                                   child: Row(
@@ -1091,25 +1097,30 @@ Widget _documentRow(
                           Expanded(
                             child: FilledButton(
                               onPressed: () async {
-                                final uid = context.read<AuthBloc>().state.user?.id;
+                                final uid = context
+                                    .read<AuthBloc>()
+                                    .state
+                                    .user
+                                    ?.id;
                                 if (uid == null) return;
                                 try {
-                                  await sl<ProfileRemoteDataSource>().updateProfile(
-                                    uid: uid,
-                                    fullName: nameCtrl.text.trim(),
-                                    bio: bioCtrl.text.trim(),
-                                    skills: tempSkills,
-                                    projects: tempProjects,
-                                    githubUrl: ghCtrl.text.trim().isEmpty
-                                        ? null
-                                        : ghCtrl.text.trim(),
-                                    linkedinUrl: liCtrl.text.trim().isEmpty
-                                        ? null
-                                        : liCtrl.text.trim(),
-                                    websiteUrl: webCtrl.text.trim().isEmpty
-                                        ? null
-                                        : webCtrl.text.trim(),
-                                  );
+                                  await sl<ProfileRemoteDataSource>()
+                                      .updateProfile(
+                                        uid: uid,
+                                        fullName: nameCtrl.text.trim(),
+                                        bio: bioCtrl.text.trim(),
+                                        skills: tempSkills,
+                                        projects: tempProjects,
+                                        githubUrl: ghCtrl.text.trim().isEmpty
+                                            ? null
+                                            : ghCtrl.text.trim(),
+                                        linkedinUrl: liCtrl.text.trim().isEmpty
+                                            ? null
+                                            : liCtrl.text.trim(),
+                                        websiteUrl: webCtrl.text.trim().isEmpty
+                                            ? null
+                                            : webCtrl.text.trim(),
+                                      );
                                   if (ctx.mounted) Navigator.pop(ctx);
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1145,9 +1156,7 @@ Widget _documentRow(
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(width: 1.5),

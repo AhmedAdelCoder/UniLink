@@ -22,7 +22,7 @@ abstract class ProfileRemoteDataSource {
   });
 
   Future<String> uploadProfilePhoto(String uid, File file);
-   Future<String> uploadCv(String uid, File file);
+   Future<void> saveCvUrl(String uid, String url);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -49,24 +49,17 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     });
   }
 
-  @override
-Future<String> uploadCv(String uid, File file) async {
+@override
+Future<void> saveCvUrl(String uid, String url) async {
   final user = _auth.currentUser;
   if (user == null || user.uid != uid) {
     throw StateError('Not authenticated');
   }
 
-  final uploadedUrl = await _cloudinaryService.uploadFile(file);
-  if (uploadedUrl == null) {
-    throw StateError('Failed to upload CV');
-  }
-
   await _users.doc(uid).update({
-    'cvUrl': uploadedUrl,
+    'cvUrl': url,
     'updatedAt': FieldValue.serverTimestamp(),
   });
-
-  return uploadedUrl;
 }
 
   @override

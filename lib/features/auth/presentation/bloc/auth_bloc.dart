@@ -34,9 +34,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
-  // =========================
-  // تحقق من حالة المستخدم الحالي
-  // =========================
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,

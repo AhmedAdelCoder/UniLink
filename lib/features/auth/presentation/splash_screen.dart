@@ -26,7 +26,6 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
-    // التحقق من ان المستخدم اتم Onboarding
     final prefs = await SharedPreferences.getInstance();
     final onboardingDone = prefs.getBool(kOnboardingCompletedKey) ?? false;
 
@@ -37,7 +36,6 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    // التحقق من حالة تسجيل الدخول
     if (!mounted) return;
     context.read<AuthBloc>().add(const AuthCheckRequested());
   }

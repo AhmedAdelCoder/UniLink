@@ -101,7 +101,6 @@ class _LoginPageState extends State<LoginPage> {
 
                       const SizedBox(height: 32),
 
-                      /// 🔥 CARD
                       Card(
                         elevation: 6,
                         shape: RoundedRectangleBorder(
@@ -163,7 +162,7 @@ class _LoginPageState extends State<LoginPage> {
 
                                 const SizedBox(height: 8),
 
-                                /// Login Button
+                              
                                 SizedBox(
                                   width: double.infinity,
                                   height: 50,

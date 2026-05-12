@@ -1,4 +1,5 @@
 {
   "java.configuration.updateBuildConfiguration": "interactive",
-  "cmake.sourceDirectory": "B:/Level_3_part_2/Comp310_Flutter/UniLink/linux"
+  "cmake.sourceDirectory": "B:/Level_3_part_2/Comp310_Flutter/UniLink/linux",
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

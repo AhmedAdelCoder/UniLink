@@ -46,13 +46,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   result.fold(
     (failure) {
-      // لو فيه خطأ، اعرض Snackbar بالرسالة
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(failure is AuthFailure ? failure.message : 'Unexpected error')),
       );
     },
     (user) {
-      // لو ناجح، نفذ الـ callback للانتقال للصفحة التالية
       widget.onRegisterSuccess();
     },
   );

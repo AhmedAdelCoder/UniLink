@@ -1,3 +1,5 @@
+// ignore_for_file: strict_top_level_inference
+
 import 'package:flutter/material.dart';
 import 'package:unilink/core/errors/failures.dart';
 import 'package:unilink/features/auth/domain/entities/app_user.dart';

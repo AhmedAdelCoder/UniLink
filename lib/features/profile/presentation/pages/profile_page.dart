@@ -192,7 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 _linkTile(
                                   context,
                                   icon: Icons.work_outline,
-                                  label: 'LinkedIn',
+                                  label: 'UniLink',
                                   value: user.linkedinUrl,
                                 ),
                                 const SizedBox(height: 10),

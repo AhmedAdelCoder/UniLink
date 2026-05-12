@@ -51,9 +51,9 @@ class _JobsPageState extends State<JobsPage> {
       listener: (context, state) {
         final message = state.errorMessage ?? state.infoMessage;
         if (message != null && message.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
           context.read<JobsBloc>().add(const JobsClearMessage());
         }
       },
@@ -71,12 +71,8 @@ class _JobsPageState extends State<JobsPage> {
               _RecruiterActions(
                 onCreateJob: () async {
                   await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const CreateJobPage(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const CreateJobPage()),
                   );
-                  // ✅ Stream auto-updates via Firestore snapshots
-                  // No manual refresh needed
                 },
               ),
             const SizedBox(height: 10),
@@ -143,10 +139,8 @@ class _JobsPageState extends State<JobsPage> {
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open Application Form'),
                     onPressed: () async {
-                      // ✅ Close sheet first
                       Navigator.pop(sheetContext);
 
-                      // ✅ Launch URL immediately — no Firestore write needed
                       final uri = Uri.tryParse(job.formUrl!);
                       if (uri != null && await canLaunchUrl(uri)) {
                         await launchUrl(
@@ -161,6 +155,24 @@ class _JobsPageState extends State<JobsPage> {
                             ),
                           );
                         }
+                        return;
+                      }
+
+                      // ✅ FIXED: dispatch JobsApplyRequested AFTER launching
+                      // the external form. This writes the application to
+                      // Firestore so the recruiter sees the applicant instantly
+                      // in real-time via the stream. Previously the apply flow
+                      // only opened the URL and never recorded anything in
+                      // Firestore — so the applicants screen was always empty.
+                      if (context.mounted) {
+                        context.read<JobsBloc>().add(
+                          JobsApplyRequested(
+                            jobId: job.id,
+                            recruiterId: job.recruiterId,
+                            studentId: authUser.id,
+                            studentName: authUser.fullName,
+                          ),
+                        );
                       }
                     },
                   ),
@@ -252,9 +264,9 @@ class _JobsHeader extends StatelessWidget {
           children: [
             Text(
               authUser.role == UserRole.student ? 'Jobs For You' : 'My Jobs',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
@@ -331,17 +343,17 @@ class _JobCard extends StatelessWidget {
                 Text(
                   job.recruiterName,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               job.title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(job.location),
@@ -359,8 +371,9 @@ class _JobCard extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: -8,
-              children:
-                  job.skills.map((skill) => Chip(label: Text(skill))).toList(),
+              children: job.skills
+                  .map((skill) => Chip(label: Text(skill)))
+                  .toList(),
             ),
             const SizedBox(height: 12),
             if (isRecruiter)

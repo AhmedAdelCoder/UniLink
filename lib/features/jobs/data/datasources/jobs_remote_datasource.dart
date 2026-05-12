@@ -69,7 +69,6 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _applications =>
       _firestore.collection('applications');
 
-  // ✅ Real-time stream — snapshots() auto-updates on any Firestore change
   @override
   Stream<List<JobModel>> streamAllJobs() {
     return _jobs
@@ -78,14 +77,16 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
         .map((snap) => snap.docs.map(JobModel.fromFirestore).toList());
   }
 
-  // ✅ Real-time stream for recruiter jobs
   @override
   Stream<List<JobModel>> streamRecruiterJobs(String recruiterId) {
     return _jobs
         .where('recruiterId', isEqualTo: recruiterId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map(JobModel.fromFirestore).toList());
+        .map((snap) {
+      final jobs = snap.docs.map(JobModel.fromFirestore).toList();
+      jobs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return jobs;
+    });
   }
 
   @override
@@ -105,13 +106,13 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     if (!userDoc.exists) throw RecruiterProfileNotFoundException();
 
     final userData = userDoc.data() ?? {};
-    final recruiterName = (userData['fullName'] as String?) ??
+    final recruiterName =
+        (userData['fullName'] as String?) ??
         (userData['name'] as String?) ??
         'Recruiter';
     final recruiterAvatarUrl =
         userData['avatarUrl'] as String? ?? userData['photoUrl'] as String?;
 
-    // ✅ Firestore write triggers streamRecruiterJobs snapshot automatically
     await _jobs.add({
       'recruiterId': currentUser.uid,
       'recruiterName': recruiterName,
@@ -140,15 +141,23 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     required String studentId,
     required String studentName,
   }) async {
-    final existing = await _applications
-        .where('jobId', isEqualTo: jobId)
-        .where('studentId', isEqualTo: studentId)
-        .limit(1)
-        .get();
+    // ✅ FIXED: the old duplicate check used two .where() clauses on different
+    // fields (jobId + studentId), which requires a composite Firestore index.
+    // Without that index, the .get() throws [failed-precondition] silently —
+    // the application is never written, so the recruiter never sees it.
+    //
+    // Fix: use a deterministic document ID = "jobId_studentId".
+    // This means the document either exists or it doesn't — no query needed,
+    // no index required, and duplicate prevention is guaranteed by Firestore
+    // itself (set with merge:false will just overwrite, but we check first
+    // with a single doc get which needs no index at all).
+    final docId = '${jobId}_$studentId';
+    final docRef = _applications.doc(docId);
 
-    if (existing.docs.isNotEmpty) return;
+    final existing = await docRef.get();
+    if (existing.exists) return;
 
-    await _applications.add({
+    await docRef.set({
       'jobId': jobId,
       'recruiterId': recruiterId,
       'studentId': studentId,
@@ -169,14 +178,15 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     });
   }
 
-  // ✅ Real-time stream for applications
   @override
   Stream<List<JobApplicationModel>> streamApplicationsForJob(String jobId) {
     return _applications
         .where('jobId', isEqualTo: jobId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) =>
-            snap.docs.map(JobApplicationModel.fromFirestore).toList());
+        .map((snap) {
+      final apps = snap.docs.map(JobApplicationModel.fromFirestore).toList();
+      apps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return apps;
+    });
   }
 }

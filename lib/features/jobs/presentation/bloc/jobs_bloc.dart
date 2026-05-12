@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -24,7 +22,7 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
   }) : super(const JobsState.initial()) {
     on<JobsStartFeed>(_onStartFeed);
     on<JobsStartRecruiterJobs>(_onStartRecruiterJobs);
-    on<JobsDataUpdated>(_onDataUpdated);
+    // ❌ REMOVED: on<JobsDataUpdated> — no longer needed
     on<JobsCreateRequested>(_onCreateRequested);
     on<JobsDeleteRequested>(_onDeleteRequested);
     on<JobsApplyRequested>(_onApplyRequested);
@@ -37,18 +35,26 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
   final DeleteJob deleteJob;
   final ApplyToJob applyToJob;
 
-  StreamSubscription<List<Job>>? _jobsSubscription;
+  // ❌ REMOVED: StreamSubscription<List<Job>>? _jobsSubscription
+  // emit.onEach manages the subscription lifetime automatically.
 
   Future<void> _onStartFeed(
     JobsStartFeed event,
     Emitter<JobsState> emit,
   ) async {
-    await _jobsSubscription?.cancel();
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
-    _jobsSubscription = streamFollowedJobs(event.studentId).listen(
-      (jobs) => add(JobsDataUpdated(jobs)),
-      onError: (Object error) => addError(error, StackTrace.current),
+    await emit.onEach<List<Job>>(
+      streamFollowedJobs(event.studentId),
+      onData: (jobs) => emit(state.copyWith(
+        isLoading: false,
+        jobs: jobs,
+        errorMessage: null,
+      )),
+      onError: (error, _) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      )),
     );
   }
 
@@ -56,27 +62,19 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
     JobsStartRecruiterJobs event,
     Emitter<JobsState> emit,
   ) async {
-    await _jobsSubscription?.cancel();
-    // ✅ emit loading true so UI shows spinner briefly
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
-    _jobsSubscription = streamRecruiterJobs(event.recruiterId).listen(
-      (jobs) => add(JobsDataUpdated(jobs)),
-      onError: (Object error) => addError(error, StackTrace.current),
-    );
-  }
-
-  void _onDataUpdated(
-    JobsDataUpdated event,
-    Emitter<JobsState> emit,
-  ) {
-    
-    emit(
-      state.copyWith(
+    await emit.onEach<List<Job>>(
+      streamRecruiterJobs(event.recruiterId),
+      onData: (jobs) => emit(state.copyWith(
         isLoading: false,
-        jobs: event.jobs,
+        jobs: jobs,
         errorMessage: null,
-      ),
+      )),
+      onError: (error, _) => emit(state.copyWith(
+        isLoading: false,
+        errorMessage: error.toString(),
+      )),
     );
   }
 
@@ -126,7 +124,9 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
       errorMessage: null,
       infoMessage: null,
     ));
+
     final result = await deleteJob(DeleteJobParams(event.jobId));
+
     result.fold(
       (failure) => emit(state.copyWith(
         isSubmitting: false,
@@ -179,9 +179,5 @@ class JobsBloc extends Bloc<JobsEvent, JobsState> {
 
   String _mapFailure(Failure failure) => failure.message;
 
-  @override
-  Future<void> close() async {
-    await _jobsSubscription?.cancel();
-    return super.close();
-  }
+  // ❌ REMOVED: close() override — no manual subscription to cancel anymore.
 }

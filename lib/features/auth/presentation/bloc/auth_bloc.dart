@@ -155,9 +155,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // =========================
-  // تسجيل الخروج
-  // =========================
+ 
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
@@ -183,9 +181,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // =========================
-  // تحويل الـ Failure لرسالة
-  // =========================
+
   String _mapFailureToMessage(Failure failure) {
     return failure.message;
   }

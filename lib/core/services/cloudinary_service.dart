@@ -25,10 +25,10 @@ class CloudinaryService {
     return null;
   }
 
-  // ✅ رفع PDF أو أي ملف
+
   Future<String?> uploadFile(File file) async {
     final url = Uri.parse(
-      'https://api.cloudinary.com/v1_1/$cloudName/raw/upload', // ✅ raw مش image
+      'https://api.cloudinary.com/v1_1/$cloudName/raw/upload', 
     );
 
     final request = http.MultipartRequest('POST', url)

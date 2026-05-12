@@ -22,9 +22,7 @@ class AppUserModel extends AppUser {
     super.lastSeen,
   });
 
-  // ==========================
-  // تحويل البيانات الخام لقائمة مشاريع
-  // ==========================
+
   static List<UserProject> _parseProjects(dynamic raw) {
     if (raw is! List) return const [];
 
@@ -43,17 +41,13 @@ class AppUserModel extends AppUser {
         .toList();
   }
 
-  // ==========================
-  // تحويل البيانات الخام لقائمة مهارات
-  // ==========================
+
   static List<String> _parseSkills(dynamic raw) {
     if (raw is! List) return const [];
     return raw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
   }
 
-  // ==========================
-  // إنشاء نموذج المستخدم من Firestore
-  // ==========================
+
   factory AppUserModel.fromFirestore(String id, Map<String, dynamic> data) {
     final roleString = (data['role'] as String?) ?? 'student';
 
@@ -91,9 +85,7 @@ class AppUserModel extends AppUser {
 
 
 
-  // ==========================
-  // تحويل المستخدم الجديد إلى Firestore
-  // ==========================
+
   Map<String, dynamic> toFirestoreNewUser() {
     return {
       'email': email,
@@ -123,9 +115,7 @@ class AppUserModel extends AppUser {
     };
   }
 
-  // ==========================
-  // رفع صورة المستخدم وتحديث photoUrl
-  // ==========================
+
   Future<AppUserModel> updatePhoto(File imageFile) async {
     final cloudinary = CloudinaryService();
     final uploadedUrl = await cloudinary.uploadImage(imageFile);

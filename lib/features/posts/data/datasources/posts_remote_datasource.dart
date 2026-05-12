@@ -127,9 +127,18 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
       if (snapshot.docs.length < batchSize) break;
     }
 
-    final posts = filteredDocs
-        .map((doc) => PostModel.fromFirestore(doc))
-        .toList();
+    // ✅ السطر القديم اتحذف - بس النسخة الجديدة دي بس
+    final posts = await Future.wait(
+      filteredDocs.map((doc) async {
+        final likeDoc = await _postsCollection
+            .doc(doc.id)
+            .collection('likes')
+            .doc(currentUser.uid)
+            .get();
+
+        return PostModel.fromFirestore(doc, isLikedByMe: likeDoc.exists);
+      }),
+    );
 
     return PaginatedPostsResult(
       posts: posts,
@@ -161,9 +170,7 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
       imageUrl = await _cloudinaryService.uploadImage(file);
     }
 
-    final userDoc =
-        await _firestore.collection('users').doc(user.uid).get();
-
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final userData = userDoc.data() ?? {};
 
     await postRef.set({
@@ -215,7 +222,12 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
   @override
   Future<void> likePost(String postId) async {
     final user = _firebaseAuth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      throw fb.FirebaseAuthException(
+        code: 'user-not-logged-in',
+        message: 'No user is currently logged in',
+      );
+    }
 
     final likeRef =
         _postsCollection.doc(postId).collection('likes').doc(user.uid);
@@ -225,10 +237,9 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
 
       if (!doc.exists) {
         tx.set(likeRef, {
-          'userId': user.uid, // ✅ FIX: مطلوب عشان الـ Firestore Rule تشتغل
+          'userId': user.uid,
           'createdAt': FieldValue.serverTimestamp(),
         });
-
         tx.update(_postsCollection.doc(postId), {
           'likeCount': FieldValue.increment(1),
         });
@@ -239,7 +250,12 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
   @override
   Future<void> unlikePost(String postId) async {
     final user = _firebaseAuth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      throw fb.FirebaseAuthException(
+        code: 'user-not-logged-in',
+        message: 'No user is currently logged in',
+      );
+    }
 
     final likeRef =
         _postsCollection.doc(postId).collection('likes').doc(user.uid);
@@ -249,7 +265,6 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
 
       if (doc.exists) {
         tx.delete(likeRef);
-
         tx.update(_postsCollection.doc(postId), {
           'likeCount': FieldValue.increment(-1),
         });
@@ -287,9 +302,7 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
       throw Exception("Not authenticated");
     }
 
-    final userDoc =
-        await _firestore.collection('users').doc(user.uid).get();
-
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final data = userDoc.data() ?? {};
 
     final commentRef =
@@ -307,7 +320,6 @@ class PostsRemoteDataSourceImpl implements PostsRemoteDataSource {
 
     await _firestore.runTransaction((tx) async {
       tx.set(commentRef, comment.toFirestore());
-
       tx.update(_postsCollection.doc(postId), {
         'commentCount': FieldValue.increment(1),
       });

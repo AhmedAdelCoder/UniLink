@@ -15,7 +15,7 @@ class PostModel extends Post {
     super.authorPhotoUrl,
     super.imageUrl,
     super.updatedAt,
-    super.isLikedByMe,
+    super.isLikedByMe = false,
   });
 
   factory PostModel.fromFirestore(

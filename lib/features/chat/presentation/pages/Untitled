@@ -60,7 +60,7 @@ class ChatListPage extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              /// 🔥 FIXED NAVIGATION
+
               onTap: () {
                 final myUid = context.read<AuthBloc>().state.user?.id;
 

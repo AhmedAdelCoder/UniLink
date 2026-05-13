@@ -31,7 +31,7 @@ Future<void> main() async {
 
   
   final uid = FirebaseAuth.instance.currentUser?.uid;
-  debugPrint("🔥 CURRENT USER UID = $uid");
+  debugPrint(" CURRENT USER UID = $uid");
 
   runApp(const UniLinkApp());
 }

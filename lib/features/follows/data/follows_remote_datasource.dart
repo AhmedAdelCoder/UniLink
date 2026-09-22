@@ -16,28 +16,25 @@ abstract class FollowsRemoteDataSource {
   });
 }
 
-class FollowsRemoteDataSourceImpl implements FollowsRemoteDataSource {
+class FollowsRemoteDataSourceImpl implements FollowsRemoteDataSource 
+{
   FollowsRemoteDataSourceImpl({required FirebaseFirestore firestore})
-      : _firestore = firestore;
+    : _firestore = firestore;
 
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _follows =>
       _firestore.collection('follows');
 
-  String _followId({
-    required String studentId,
-    required String companyId,
-  }) {
+  String _followId({required String studentId, required String companyId}) {
     return '${studentId}_$companyId';
   }
 
   @override
   Stream<List<String>> watchFollowedCompanyIds(String studentId) {
-    return _follows
-        .where('studentId', isEqualTo: studentId)
-        .snapshots()
-        .map((snapshot) {
+    return _follows.where('studentId', isEqualTo: studentId).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs
           .map((doc) => (doc.data()['companyId'] as String?) ?? '')
           .where((companyId) => companyId.isNotEmpty)
@@ -52,9 +49,7 @@ class FollowsRemoteDataSourceImpl implements FollowsRemoteDataSource {
     required String companyId,
   }) {
     return _follows
-        .doc(
-          _followId(studentId: studentId, companyId: companyId),
-        )
+        .doc(_followId(studentId: studentId, companyId: companyId))
         .snapshots()
         .map((doc) => doc.exists);
   }
@@ -65,14 +60,12 @@ class FollowsRemoteDataSourceImpl implements FollowsRemoteDataSource {
     required String companyId,
   }) async {
     await _follows
-        .doc(
-          _followId(studentId: studentId, companyId: companyId),
-        )
+        .doc(_followId(studentId: studentId, companyId: companyId))
         .set({
-      'studentId': studentId,
-      'companyId': companyId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'studentId': studentId,
+          'companyId': companyId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 
   @override
@@ -81,9 +74,7 @@ class FollowsRemoteDataSourceImpl implements FollowsRemoteDataSource {
     required String companyId,
   }) async {
     await _follows
-        .doc(
-          _followId(studentId: studentId, companyId: companyId),
-        )
+        .doc(_followId(studentId: studentId, companyId: companyId))
         .delete();
   }
 }

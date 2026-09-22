@@ -8,6 +8,7 @@ import '../../domain/entities/job.dart';
 import '../bloc/jobs_bloc.dart';
 import 'create_job_page.dart';
 import 'job_applicants_page.dart';
+import 'job_details_page.dart';
 
 class JobsPage extends StatefulWidget {
   const JobsPage({super.key});
@@ -396,8 +397,14 @@ class _JobCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: FilledButton(
-                  onPressed: isApplying ? null : onApply,
-                  child: const Text('Apply'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => JobDetailsPage(job: job),
+                      ),
+                    );
+                  },
+                  child: const Text('View Details'),
                 ),
               ),
           ],

@@ -8,7 +8,9 @@ import '../../../auth/domain/entities/app_user.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../connections/data/connections_remote_datasource.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
-
+import '../../../follows/domain/repositories/follows_repository.dart';
+import '../../../follows/domain/usecases/follow_company.dart';
+import '../../../follows/domain/usecases/unfollow_company.dart';
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
@@ -201,6 +203,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
+
 class _ConnectionActionButton extends StatelessWidget {
   const _ConnectionActionButton({
     required this.myUser,
@@ -214,6 +217,47 @@ class _ConnectionActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If a student is viewing a recruiter,
+    // show Follow Company instead of Connect.
+    if (myUser.role == UserRole.student &&
+        otherUser.role == UserRole.recruiter) {
+      final followsRepository = sl<FollowsRepository>();
+
+      return StreamBuilder<bool>(
+        stream: followsRepository.watchIsFollowing(
+          studentId: myUser.id,
+          companyId: otherUser.id,
+        ),
+        builder: (context, snap) {
+          final isFollowing = snap.data ?? false;
+
+          return FilledButton.tonal(
+            onPressed: () async {
+              if (isFollowing) {
+                await sl<UnfollowCompany>().call(
+                  UnfollowCompanyParams(
+                    studentId: myUser.id,
+                    companyId: otherUser.id,
+                  ),
+                );
+              } else {
+                await sl<FollowCompany>().call(
+                  FollowCompanyParams(
+                    studentId: myUser.id,
+                    companyId: otherUser.id,
+                  ),
+                );
+              }
+            },
+            child: Text(
+              isFollowing ? 'Following' : 'Follow ',
+            ),
+          );
+        },
+      );
+    }
+
+    // For normal users, keep the existing connection system.
     return StreamBuilder<ConnectionStatus>(
       stream: connections.watchStatus(
         myUid: myUser.id,
@@ -221,11 +265,14 @@ class _ConnectionActionButton extends StatelessWidget {
       ),
       builder: (context, snap) {
         final status = snap.data ?? ConnectionStatus.none;
+
         switch (status) {
           case ConnectionStatus.connected:
             return const Chip(label: Text('Connected'));
+
           case ConnectionStatus.outgoingPending:
             return const Chip(label: Text('Pending'));
+
           case ConnectionStatus.incomingPending:
             return FilledButton(
               onPressed: () async {
@@ -236,6 +283,7 @@ class _ConnectionActionButton extends StatelessWidget {
               },
               child: const Text('Accept'),
             );
+
           case ConnectionStatus.none:
             return FilledButton.tonal(
               onPressed: () async {

@@ -141,16 +141,7 @@ class JobsRemoteDataSourceImpl implements JobsRemoteDataSource {
     required String studentId,
     required String studentName,
   }) async {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     final docId = '${jobId}_$studentId';
     final docRef = _applications.doc(docId);
 

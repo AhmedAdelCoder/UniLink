@@ -4,34 +4,34 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:rxdart/rxdart.dart';
 
 import '../../../../core/errors/failures.dart';
-import '../../../connections/data/connections_remote_datasource.dart';
+import '../../../follows/data/follows_remote_datasource.dart';
 import '../../domain/entities/job.dart';
 import '../../domain/entities/job_application.dart';
 import '../../domain/repositories/jobs_repository.dart';
 import '../datasources/jobs_remote_datasource.dart';
 
 class JobsRepositoryImpl implements JobsRepository {
-  JobsRepositoryImpl({
-    required this.jobsRemoteDataSource,
-    required this.connectionsRemoteDataSource,
-  });
+ JobsRepositoryImpl({
+  required this.jobsRemoteDataSource,
+  required this.followsRemoteDataSource,
+});
 
-  final JobsRemoteDataSource jobsRemoteDataSource;
-  final ConnectionsRemoteDataSource connectionsRemoteDataSource;
+final JobsRemoteDataSource jobsRemoteDataSource;
+final FollowsRemoteDataSource followsRemoteDataSource;
+ @override
+Stream<List<Job>> streamFollowedJobs(String studentId) {
+  return Rx.combineLatest2<List<Job>, List<String>, List<Job>>(
+    jobsRemoteDataSource.streamAllJobs(),
+    followsRemoteDataSource.watchFollowedCompanyIds(studentId),
+    (jobs, followedCompanyIds) {
+      final followedSet = followedCompanyIds.toSet();
 
-  @override
-  Stream<List<Job>> streamFollowedJobs(String studentId) {
-    return Rx.combineLatest2<List<Job>, List<String>, List<Job>>(
-      jobsRemoteDataSource.streamAllJobs(),
-      connectionsRemoteDataSource.watchConnectedUserIds(studentId),
-      (jobs, connectedIds) {
-        final connectedSet = connectedIds.toSet();
-        return jobs
-            .where((job) => connectedSet.contains(job.recruiterId))
-            .toList(growable: false);
-      },
-    );
-  }
+      return jobs
+          .where((job) => followedSet.contains(job.recruiterId))
+          .toList(growable: false);
+    },
+  );
+}
 
   @override
   Stream<List<Job>> streamRecruiterJobs(String recruiterId) {

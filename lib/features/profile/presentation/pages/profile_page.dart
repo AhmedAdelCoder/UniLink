@@ -437,50 +437,47 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildRelationshipAction(BuildContext context, AppUserModel other) {
     final me = context.read<AuthBloc>().state.user;
     if (me == null) return const SizedBox.shrink();
-    if (other.role == UserRole.recruiter && me.role == UserRole.student) {
-      final followsRepository = sl<FollowsRepository>();
-      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('companies')
-            .where('ownerId', isEqualTo: other.id)
-            .limit(1)
-            .snapshots(),
-        builder: (context, companySnapshot) {
-          final docs = companySnapshot.data?.docs ?? const [];
-          if (docs.isEmpty) {
-            return const SizedBox.shrink();
+ 
+if (other.role == UserRole.recruiter && me.role == UserRole.student) {
+  final followsRepository = sl<FollowsRepository>();
+
+  return StreamBuilder<bool>(
+    stream: followsRepository.watchIsFollowing(
+      studentId: me.id,
+      companyId: other.id,
+    ),
+    builder: (context, snapshot) {
+      final isFollowing = snapshot.data ?? false;
+
+      return FilledButton.tonalIcon(
+        onPressed: () async {
+          if (isFollowing) {
+            await sl<UnfollowCompany>().call(
+              UnfollowCompanyParams(
+                studentId: me.id,
+                companyId: other.id,
+              ),
+            );
+            return;
           }
-          final companyId = docs.first.id;
-          return StreamBuilder<bool>(
-            stream: followsRepository.watchIsFollowing(
+
+          await sl<FollowCompany>().call(
+            FollowCompanyParams(
               studentId: me.id,
-              companyId: companyId,
+              companyId: other.id,
             ),
-            builder: (context, snapshot) {
-              final isFollowing = snapshot.data ?? false;
-              return FilledButton.tonalIcon(
-                onPressed: () async {
-                  if (isFollowing) {
-                    await sl<UnfollowCompany>().call(
-                      UnfollowCompanyParams(
-                        studentId: me.id,
-                        companyId: companyId,
-                      ),
-                    );
-                    return;
-                  }
-                  await sl<FollowCompany>().call(
-                    FollowCompanyParams(studentId: me.id, companyId: companyId),
-                  );
-                },
-                icon: Icon(isFollowing ? Icons.check : Icons.add),
-                label: Text(isFollowing ? 'Following' : 'Follow Company'),
-              );
-            },
           );
         },
+        icon: Icon(isFollowing ? Icons.check : Icons.add),
+        label: Text(
+          isFollowing ? 'Following' : 'Follow Company',
+        ),
       );
-    }
+    },
+  );
+}
+
+
 
     final connections = sl<ConnectionsRemoteDataSource>();
     return StreamBuilder<ConnectionStatus>(

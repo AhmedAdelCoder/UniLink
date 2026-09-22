@@ -136,7 +136,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<JobsRepository>(
     () => JobsRepositoryImpl(
       jobsRemoteDataSource: sl<JobsRemoteDataSource>(),
-      connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),
+    followsRemoteDataSource: sl<FollowsRemoteDataSource>(),
     ),
   );
 

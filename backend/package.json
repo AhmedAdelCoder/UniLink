@@ -1,20 +1,29 @@
 {
-  "name": "backend",
+  "name": "unilink-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "UniLink Backend API",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "unilink",
+    "backend",
+    "node",
+    "express"
+  ],
+  "author": "UniLink Team",
   "license": "ISC",
-  "description": "",
   "dependencies": {
+    "@prisma/client": "^7.10.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.1",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "morgan": "^1.12.1",
+    "prisma": "^7.10.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -1,0 +1,203 @@
+// ============================================================
+// UniLink — Prisma Schema (PostgreSQL)
+// ============================================================
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+// ------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------
+
+enum Role {
+  student
+  recruiter
+}
+
+enum JobType {
+  full_time
+  part_time
+  internship
+  contract
+}
+
+enum WorkMode {
+  remote
+  onsite
+  hybrid
+}
+
+enum JobStatus {
+  open
+  closed
+  draft
+}
+
+enum ApplicationStatus {
+  pending
+  reviewed
+  accepted
+  rejected
+  withdrawn
+}
+
+enum ConnectionStatus {
+  pending
+  accepted
+  rejected
+  removed
+}
+
+// ------------------------------------------------------------
+// USERS
+// ------------------------------------------------------------
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique @db.VarChar(255)
+  passwordHash     String    @map("password_hash")
+  fullName         String    @map("full_name") @db.VarChar(150)
+  role             Role
+
+  // student-oriented profile fields (nullable for recruiters)
+  photoUrl         String?   @map("photo_url")
+  bio              String?
+  skills           String[]
+  projects         Json?
+  githubUrl        String?   @map("github_url")
+  websiteUrl       String?   @map("website_url")
+  cvUrl            String?   @map("cv_url")
+
+  // recruiter-oriented profile fields (nullable for students)
+  companyName      String?   @map("company_name") @db.VarChar(150)
+  companyLogoUrl   String?   @map("company_logo_url")
+
+  // presence
+  isOnline         Boolean   @default(false) @map("is_online")
+  lastSeen         DateTime? @map("last_seen")
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  // relations
+  refreshTokens        RefreshToken[]
+  jobsPosted            Job[]           @relation("RecruiterJobs")
+  applications          Application[]
+  connectionsRequested  Connection[]    @relation("ConnectionRequester")
+  connectionsReceived   Connection[]    @relation("ConnectionReceiver")
+  follows               Follow[]        @relation("StudentFollows")
+  followedBy            Follow[]        @relation("RecruiterFollowers")
+
+  @@index([role])
+  @@map("users")
+}
+
+// ------------------------------------------------------------
+// REFRESH_TOKENS
+// ------------------------------------------------------------
+
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @map("token_hash")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ------------------------------------------------------------
+// JOBS
+// ------------------------------------------------------------
+
+model Job {
+  id            String    @id @default(uuid()) @db.Uuid
+  recruiterId   String    @map("recruiter_id") @db.Uuid
+  title         String    @db.VarChar(150)
+  description   String?
+  skills        String[]
+  jobType       JobType   @map("job_type")
+  workMode      WorkMode  @map("work_mode")
+  salaryRange   String?   @map("salary_range") @db.VarChar(50)
+  location      String?   @db.VarChar(150)
+  formUrl       String?   @map("form_url")
+  status        JobStatus @default(open)
+  deadline      DateTime?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  recruiter    User          @relation("RecruiterJobs", fields: [recruiterId], references: [id])
+  applications Application[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@map("jobs")
+}
+
+// ------------------------------------------------------------
+// APPLICATIONS
+// ------------------------------------------------------------
+
+model Application {
+  id            String            @id @default(uuid()) @db.Uuid
+  jobId         String            @map("job_id") @db.Uuid
+  studentId     String            @map("student_id") @db.Uuid
+  status        ApplicationStatus @default(pending)
+  coverLetter   String?           @map("cover_letter")
+  cvUrl         String?           @map("cv_url") // snapshot of the CV at time of application
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  job     Job  @relation(fields: [jobId], references: [id])
+  student User @relation(fields: [studentId], references: [id])
+
+  @@unique([jobId, studentId])
+  @@index([studentId])
+  @@map("applications")
+}
+
+// ------------------------------------------------------------
+// CONNECTIONS
+// ------------------------------------------------------------
+
+model Connection {
+  id            String           @id @default(uuid()) @db.Uuid
+  requesterId   String           @map("requester_id") @db.Uuid
+  receiverId    String           @map("receiver_id") @db.Uuid
+  status        ConnectionStatus @default(pending)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  requester User @relation("ConnectionRequester", fields: [requesterId], references: [id])
+  receiver  User @relation("ConnectionReceiver", fields: [receiverId], references: [id])
+
+  @@index([receiverId])
+  @@map("connections")
+}
+// ------------------------------------------------------------
+// FOLLOWS
+// ------------------------------------------------------------
+
+model Follow {
+  id            String   @id @default(uuid()) @db.Uuid
+  studentId     String   @map("student_id") @db.Uuid
+  recruiterId   String   @map("recruiter_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  student   User @relation("StudentFollows", fields: [studentId], references: [id])
+  recruiter User @relation("RecruiterFollowers", fields: [recruiterId], references: [id])
+
+  @@unique([studentId, recruiterId])
+  @@index([recruiterId])
+  @@map("follows")
+}

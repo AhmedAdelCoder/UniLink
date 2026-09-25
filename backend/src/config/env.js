@@ -1,5 +1,4 @@
-@'
-import dotenv from 'dotenv';
+﻿import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -11,4 +10,3 @@ const env = {
 };
 
 export default env;
-'@ | Set-Content backend/src/config/env.js

@@ -2,9 +2,8 @@
 // UniLink — Prisma Schema (PostgreSQL)
 // ============================================================
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "esm"
+  provider     = "prisma-client-js"
+
 }
 
 datasource db {

@@ -1,13 +1,15 @@
-import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import env from './env.js';
 
-dotenv.config();
+const connectMongoDB = async () => {
+  try {
+    await mongoose.connect(env.mongodbUri);
 
-const env = {
-  port: process.env.PORT || 5000,
-  nodeEnv: process.env.NODE_ENV || 'development',
-
-  databaseUrl: process.env.DATABASE_URL,
-  mongodbUri: process.env.MONGODB_URI,
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message);
+    process.exit(1);
+  }
 };
 
-export default env;
+export default connectMongoDB;

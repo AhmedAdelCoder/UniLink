@@ -34,6 +34,7 @@ import '../../features/jobs/domain/usecases/stream_followed_jobs.dart';
 import '../../features/jobs/domain/usecases/stream_job_applications.dart';
 import '../../features/jobs/presentation/bloc/jobs_bloc.dart';
 
+import '../../features/posts/data/datasources/firestore_posts_remote_datasource.dart';
 import '../../features/posts/data/datasources/posts_remote_datasource.dart';
 import '../../features/posts/data/repositories/post_repository_impl.dart';
 import '../../features/posts/domain/repositories/post_repository.dart';
@@ -79,7 +80,7 @@ Future<void> initDependencies() async {
   );
 
   sl.registerLazySingleton<PostsRemoteDataSource>(
-    () => PostsRemoteDataSourceImpl(
+    () => FirestorePostsRemoteDataSource(
       firestore: sl<FirebaseFirestore>(),
       firebaseAuth: sl<fb.FirebaseAuth>(),
       connectionsRemoteDataSource: sl<ConnectionsRemoteDataSource>(),

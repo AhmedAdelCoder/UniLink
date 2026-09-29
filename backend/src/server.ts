@@ -3,7 +3,7 @@ import env from './config/env.js';
 import connectMongoDB from './config/mongodb.js';
 import prisma from './config/postgres.js';
 
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
   try {
     // Test PostgreSQL
     await prisma.$queryRaw`SELECT 1`;
@@ -16,7 +16,8 @@ const startServer = async () => {
       console.log(`UniLink Backend running on port ${env.port}`);
     });
   } catch (error) {
-    console.error('Server startup failed:', error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Server startup failed:', message);
     process.exit(1);
   }
 };

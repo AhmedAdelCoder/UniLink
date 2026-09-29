@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "UniLink Backend API",
   "type": "module",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "keywords": [
     "unilink",
@@ -26,10 +29,16 @@
     "mongoose": "^9.10.2",
     "morgan": "^1.12.1",
     "pg": "^8.23.0",
-    "prisma": "^7.10.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.0.0",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.10.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
   }
 }

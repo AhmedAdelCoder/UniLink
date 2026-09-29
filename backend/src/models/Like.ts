@@ -1,20 +1,25 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Types } from 'mongoose';
 
-const likeSchema = new mongoose.Schema(
+export interface ILike {
+  user_id: string; // app-level ref -> PostgreSQL users.id
+  post_id: Types.ObjectId | null;
+  comment_id: Types.ObjectId | null;
+  created_at: Date;
+}
+
+const likeSchema = new Schema<ILike>(
   {
     user_id: {
       type: String,
       required: true,
-    }, // app-level ref -> PostgreSQL users.id
-
+    },
     post_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Post',
       default: null,
     },
-
     comment_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Comment',
       default: null,
     },
@@ -28,19 +33,15 @@ const likeSchema = new mongoose.Schema(
 );
 
 // Exactly one of post_id / comment_id must be set
-likeSchema.pre('validate', function (next) {
+likeSchema.pre('validate', function () {
   const hasPost = this.post_id != null;
   const hasComment = this.comment_id != null;
 
   if (hasPost === hasComment) {
-    return next(
-      new Error(
-        'Like must reference exactly one of post_id or comment_id'
-      )
+    throw new Error(
+      'Like must reference exactly one of post_id or comment_id'
     );
   }
-
-  next();
 });
 
 // One like per user per post
@@ -49,7 +50,7 @@ likeSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      post_id: { $exists: true },
+      post_id: { $type: 'objectId' },
     },
   }
 );
@@ -60,9 +61,9 @@ likeSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      comment_id: { $exists: true },
+      comment_id: { $type: 'objectId' },
     },
   }
 );
 
-export default mongoose.model('Like', likeSchema);
+export default mongoose.model<ILike>('Like', likeSchema);

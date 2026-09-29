@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -18,10 +18,10 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Health Check
-app.get("/api/v1/health", (req, res) => {
+app.get("/api/v1/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "UniLink Backend is running ",
+    message: "UniLink Backend is running",
   });
 });
 

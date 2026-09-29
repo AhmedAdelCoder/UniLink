@@ -6,7 +6,7 @@ enum AuthStatus {
   authenticated,
   unauthenticated,
   passwordResetEmailSent,
-  failure, success, registerSuccess,
+  failure,
 }
 
 class AuthState extends Equatable {
@@ -29,10 +29,11 @@ class AuthState extends Equatable {
     AuthStatus? status,
     AppUser? user,
     String? errorMessage,
+    bool clearUser = false,
   }) {
     return AuthState(
       status: status ?? this.status,
-      user: user ?? this.user,
+      user: clearUser ? null : (user ?? this.user),
       errorMessage: errorMessage,
     );
   }
@@ -40,4 +41,3 @@ class AuthState extends Equatable {
   @override
   List<Object?> get props => [status, user, errorMessage];
 }
-

@@ -11,6 +11,15 @@ class AuthCheckRequested extends AuthEvent {
   const AuthCheckRequested();
 }
 
+class AuthSessionChanged extends AuthEvent {
+  final AppUser? user;
+
+  const AuthSessionChanged(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
 class AuthLoginRequested extends AuthEvent {
   final String email;
   final String password;
@@ -53,4 +62,3 @@ class AuthResetPasswordRequested extends AuthEvent {
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }
-

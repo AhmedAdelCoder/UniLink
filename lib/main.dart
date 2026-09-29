@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'firebase_options.dart';
 
@@ -23,15 +22,9 @@ import 'features/chat/presentation/pages/chat_detail_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await initDependencies();
-
-  
-  final uid = FirebaseAuth.instance.currentUser?.uid;
-  debugPrint(" CURRENT USER UID = $uid");
 
   runApp(const UniLinkApp());
 }
@@ -51,8 +44,8 @@ class _UniLinkAppState extends State<UniLinkApp> {
       _themeMode = _themeMode == ThemeMode.light
           ? ThemeMode.dark
           : _themeMode == ThemeMode.dark
-              ? ThemeMode.system
-              : ThemeMode.light;
+          ? ThemeMode.system
+          : ThemeMode.light;
     });
   }
 
@@ -60,15 +53,9 @@ class _UniLinkAppState extends State<UniLinkApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<AuthBloc>(
-          create: (_) => sl<AuthBloc>(),
-        ),
-        BlocProvider<FeedBloc>(
-          create: (_) => sl<FeedBloc>()..add(FeedLoadInitial()),
-        ),
-        BlocProvider<JobsBloc>(
-          create: (_) => sl<JobsBloc>(),
-        ),
+        BlocProvider<AuthBloc>(create: (_) => sl<AuthBloc>()),
+        BlocProvider<FeedBloc>(create: (_) => sl<FeedBloc>()),
+        BlocProvider<JobsBloc>(create: (_) => sl<JobsBloc>()),
       ],
       child: BlocListener<AuthBloc, AuthState>(
         listenWhen: (previous, current) => previous.status != current.status,

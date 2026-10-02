@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -60,7 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
       AuthRegisterRequested(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        password: _passwordController.text,
         role: _role,
       ),
     );
@@ -90,6 +88,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     final surfaceColor = scheme.surfaceContainerHighest;
+
     final inputFill = Color.alphaBlend(
       surfaceColor.withValues(alpha: isDark ? 0.60 : 0.82),
       theme.scaffoldBackgroundColor,
@@ -145,8 +144,10 @@ class _RegisterPageState extends State<RegisterPage> {
           children: [
             const UniLinkBackground(),
             SafeArea(
-              child: BlocConsumer<AuthBloc, AuthState>(
-                listener: (context, state) async {
+              child: BlocListener<AuthBloc, AuthState>(
+                listenWhen: (previous, current) =>
+                    previous.status != current.status,
+                listener: (context, state) {
                   if (state.status == AuthStatus.failure) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -155,15 +156,13 @@ class _RegisterPageState extends State<RegisterPage> {
                     );
                   }
                 },
-                builder: (context, state) {
-                  final isLoading = state.status == AuthStatus.loading;
-
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        keyboardDismissBehavior:
-                            ScrollViewKeyboardDismissBehavior.onDrag,
-                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                      child: Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             minHeight: constraints.maxHeight - 52,
@@ -176,36 +175,33 @@ class _RegisterPageState extends State<RegisterPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const DynamicLogo(),
-
+                        
                                   const SizedBox(height: 8),
-
+                        
                                   _UniLinkTitle(),
-
+                        
                                   const SizedBox(height: 6),
-
+                        
                                   _Tagline(),
-
+                        
                                   const SizedBox(height: 26),
-
+                        
                                   _GlassRegisterCard(
-                                    child: _buildFormContent(
-                                      context,
-                                      isLoading,
-                                    ),
+                                    child: _buildFormContent(context),
                                   ),
-
+                        
                                   const SizedBox(height: 18),
-
+                        
                                   const _FooterMessage(),
                                 ],
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -214,7 +210,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildFormContent(BuildContext context, bool isLoading) {
+  Widget _buildFormContent(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -376,13 +372,16 @@ class _RegisterPageState extends State<RegisterPage> {
           },
         ),
 
-        const SizedBox(height: 16),
-
         const SizedBox(height: 20),
 
-        _CreateAccountButton(
-          isLoading: isLoading,
-          onPressed: _onRegisterPressed,
+        BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (previous, current) => previous.status != current.status,
+          builder: (context, state) {
+            return _CreateAccountButton(
+              isLoading: state.status == AuthStatus.loading,
+              onPressed: _onRegisterPressed,
+            );
+          },
         ),
 
         const SizedBox(height: 20),
@@ -401,60 +400,21 @@ class _RegisterPageState extends State<RegisterPage> {
 // LOGO
 // ============================================================================
 
-class DynamicLogo extends StatefulWidget {
+class DynamicLogo extends StatelessWidget {
   const DynamicLogo({super.key});
 
   @override
-  State<DynamicLogo> createState() => _DynamicLogoState();
-}
-
-class _DynamicLogoState extends State<DynamicLogo>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _animation = Tween<double>(
-      begin: 0.95,
-      end: 1.05,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return ScaleTransition(
-      scale: _animation,
-      child: Container(
-        width: 110,
-        height: 110,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: primary.withValues(alpha: 0.30),
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+    return SizedBox(
+      width: 110,
+      height: 110,
+      child: Image.asset(
+        'assets/images/logo.png',
+        fit: BoxFit.contain,
+        cacheWidth: 220,
+        filterQuality: FilterQuality.low,
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }
 
@@ -527,37 +487,22 @@ class _GlassRegisterCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final cardColor = scheme.surface.withValues(alpha: isDark ? 0.74 : 0.90);
+    final cardColor = scheme.surface.withValues(alpha: isDark ? 0.92 : 0.96);
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: isDark ? 0.16 : 0.08),
-            blurRadius: 35,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: isDark ? 0.20 : 0.14),
-                width: 1,
-              ),
-            ),
-            child: child,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: scheme.primary.withValues(alpha: isDark ? 0.20 : 0.14),
+            width: 1,
           ),
         ),
+        child: child,
       ),
     );
   }
@@ -716,14 +661,6 @@ class _RoleOption extends StatelessWidget {
           border: selected
               ? null
               : Border.all(color: scheme.primary.withValues(alpha: 0.22)),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: scheme.primary.withValues(alpha: 0.22),
-                    blurRadius: 12,
-                  ),
-                ]
-              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -789,13 +726,6 @@ class _CreateAccountButton extends StatelessWidget {
                 scheme.primary,
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: 0.28),
-            blurRadius: 20,
-            offset: const Offset(0, 7),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,

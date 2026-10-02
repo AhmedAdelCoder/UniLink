@@ -7,6 +7,8 @@ import '../bloc/auth_bloc.dart';
 import 'register_page.dart';
 import 'reset_password_page.dart';
 
+// UniLinkBackground is defined at the bottom of this file.
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -44,11 +46,12 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     context.read<AuthBloc>().add(
-          AuthLoginRequested(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          ),
-        );
+      AuthLoginRequested(
+        email: _emailController.text.trim(),
+        // Passwords can contain spaces, so we do NOT trim them.
+        password: _passwordController.text,
+      ),
+    );
   }
 
   @override
@@ -66,9 +69,7 @@ class _LoginPageState extends State<LoginPage> {
             // BACKGROUND
             // ===============================================================
             const Positioned.fill(
-              child: RepaintBoundary(
-                child: UniLinkBackground(),
-              ),
+              child: RepaintBoundary(child: UniLinkBackground()),
             ),
 
             // ===============================================================
@@ -76,80 +77,77 @@ class _LoginPageState extends State<LoginPage> {
             // ===============================================================
             SafeArea(
               child: BlocListener<AuthBloc, AuthState>(
-                listener: (context, state) async {
+                // Only react when the status really changes.
+                listenWhen: (prev, curr) => prev.status != curr.status,
+                listener: (context, state) {
                   if (state.status == AuthStatus.failure) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          state.errorMessage ?? 'Login failed',
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(state.errorMessage ?? 'Login failed'),
                         ),
-                      ),
-                    );
+                      );
                   }
-
-                  if (state.status == AuthStatus.authenticated) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login Success'),
-                      ),
-                    );
-                  }
+                  // No "Login Success" message: the app moves to Home
+                  // automatically (see main.dart).
                 },
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.fromLTRB(
-                        20,
-                        28,
-                        20,
-                        24,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 52,
-                          maxWidth: 620,
-                        ),
-                        child: Center(
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // =================================================
-                                // LOGO
-                                // =================================================
-                                const _StaticLogo(),
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                      // Center is OUTSIDE ConstrainedBox so the form is
+                      // centered on tablets / web too.
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight - 52,
+                            maxWidth: 620,
+                          ),
+                          // This inner Center keeps the form vertically
+                          // centered on tall screens.
+                          child: Center(
+                            child: Form(
+                              key: _formKey,
+                              child: const Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // ===================================
+                                  // LOGO
+                                  // ===================================
+                                  _StaticLogo(),
 
-                                const SizedBox(height: 8),
+                                  SizedBox(height: 8),
 
-                                // =================================================
-                                // TITLE
-                                // =================================================
-                                const _UniLinkTitle(),
+                                  // ===================================
+                                  // TITLE
+                                  // ===================================
+                                  _UniLinkTitle(),
 
-                                const SizedBox(height: 6),
+                                  SizedBox(height: 6),
 
-                                // =================================================
-                                // TAGLINE
-                                // =================================================
-                                const _Tagline(),
+                                  // ===================================
+                                  // TAGLINE
+                                  // ===================================
+                                  _Tagline(),
 
-                                const SizedBox(height: 26),
+                                  SizedBox(height: 26),
 
-                                // =================================================
-                                // LOGIN CARD
-                                // =================================================
-                                const _LoginCard(),
+                                  // ===================================
+                                  // LOGIN CARD
+                                  // ===================================
+                                  _LoginCard(),
 
-                                const SizedBox(height: 18),
+                                  SizedBox(height: 18),
 
-                                // =================================================
-                                // FOOTER
-                                // =================================================
-                                const _FooterMessage(),
-                              ],
+                                  // ===================================
+                                  // FOOTER
+                                  // ===================================
+                                  _FooterMessage(),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -181,10 +179,9 @@ class _LoginCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context)
-                .colorScheme
-                .primary
-                .withValues(alpha: 0.08),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.08),
             blurRadius: 22,
             spreadRadius: 1,
             offset: const Offset(0, 8),
@@ -196,16 +193,15 @@ class _LoginCard extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface.withValues(
-                alpha: Theme.of(context).brightness == Brightness.dark
-                    ? 0.94
-                    : 0.96,
-              ),
+            alpha: Theme.of(context).brightness == Brightness.dark
+                ? 0.94
+                : 0.96,
+          ),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
-            color: Theme.of(context)
-                .colorScheme
-                .primary
-                .withValues(alpha: 0.14),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.14),
             width: 1,
           ),
         ),
@@ -227,277 +223,275 @@ class _LoginFormContent extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ===============================================================
-        // WELCOME TITLE
-        // ===============================================================
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'Welcome ',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
+    // AutofillGroup lets password managers fill email + password together.
+    return AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ===============================================================
+          // WELCOME TITLE
+          // ===============================================================
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: 'Welcome ',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
+                TextSpan(
+                  text: 'back',
+                  style: TextStyle(
+                    color: scheme.primary,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 7),
+
+          Text(
+            'Sign in to your UniLink account and continue building your network.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurface.withValues(alpha: 0.60),
+              height: 1.45,
+            ),
+          ),
+
+          const SizedBox(height: 23),
+
+          // ===============================================================
+          // EMAIL
+          // ===============================================================
+          const _FieldLabel(label: 'Email'),
+
+          const SizedBox(height: 7),
+
+          TextFormField(
+            controller: context
+                .findAncestorStateOfType<_LoginPageState>()!
+                ._emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+            style: theme.textTheme.bodyLarge,
+            decoration: _inputDecoration(
+              context,
+              hintText: 'Enter your email',
+              icon: Icons.mail_outline_rounded,
+            ),
+            validator: InputValidators.validateEmail,
+          ),
+
+          const SizedBox(height: 15),
+
+          // ===============================================================
+          // PASSWORD
+          // ===============================================================
+          const _FieldLabel(label: 'Password'),
+
+          const SizedBox(height: 7),
+
+          ValueListenableBuilder<bool>(
+            valueListenable: context
+                .findAncestorStateOfType<_LoginPageState>()!
+                ._obscurePassword,
+            builder: (context, obscure, _) {
+              final pageState = context
+                  .findAncestorStateOfType<_LoginPageState>()!;
+
+              return TextFormField(
+                controller: pageState._passwordController,
+                obscureText: obscure,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
+                style: theme.textTheme.bodyLarge,
+                decoration: _inputDecoration(
+                  context,
+                  hintText: 'Enter your password',
+                  icon: Icons.lock_outline_rounded,
+                  suffixIcon: IconButton(
+                    tooltip: obscure ? 'Show password' : 'Hide password',
+                    onPressed: () {
+                      pageState._obscurePassword.value = !obscure;
+                    },
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: scheme.onSurface.withValues(alpha: 0.55),
+                      size: 21,
+                    ),
+                  ),
+                ),
+                validator: InputValidators.validatePassword,
+                // Pressing "Done" on the keyboard now logs in.
+                onFieldSubmitted: (_) => pageState._onLoginPressed(),
+              );
+            },
+          ),
+
+          const SizedBox(height: 7),
+
+          // ===============================================================
+          // REMEMBER + FORGOT
+          // ===============================================================
+          Row(
+            children: [
+              ValueListenableBuilder<bool>(
+                valueListenable: context
+                    .findAncestorStateOfType<_LoginPageState>()!
+                    ._rememberMe,
+                builder: (context, remember, _) {
+                  final pageState = context
+                      .findAncestorStateOfType<_LoginPageState>()!;
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: Checkbox(
+                          value: remember,
+                          onChanged: (value) {
+                            pageState._rememberMe.value = value ?? false;
+                          },
+                          side: BorderSide(
+                            color: scheme.onSurface.withValues(alpha: 0.30),
+                          ),
+                          activeColor: scheme.primary,
+                          checkColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Remember me',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurface.withValues(alpha: 0.60),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-              TextSpan(
-                text: 'back',
-                style: TextStyle(
-                  color: scheme.primary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
+
+              const Spacer(),
+
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(ResetPasswordPage.routeName);
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'Forgot Password?',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
 
-        const SizedBox(height: 7),
+          const SizedBox(height: 19),
 
-        Text(
-          'Sign in to your UniLink account and continue building your network.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurface.withValues(alpha: 0.60),
-            height: 1.45,
+          // ===============================================================
+          // LOGIN BUTTON
+          // ===============================================================
+          BlocSelector<AuthBloc, AuthState, bool>(
+            selector: (state) => state.status == AuthStatus.loading,
+            builder: (context, isLoading) {
+              return _LoginButton(
+                isLoading: isLoading,
+                onPressed: () {
+                  context
+                      .findAncestorStateOfType<_LoginPageState>()!
+                      ._onLoginPressed();
+                },
+              );
+            },
           ),
-        ),
 
-        const SizedBox(height: 23),
+          const SizedBox(height: 20),
 
-        // ===============================================================
-        // EMAIL
-        // ===============================================================
-        const _FieldLabel(
-          label: 'Email',
-        ),
+          // ===============================================================
+          // SOCIAL LOGIN
+          // ===============================================================
+          const _SocialDivider(),
 
-        const SizedBox(height: 7),
+          const SizedBox(height: 16),
 
-        TextFormField(
-          controller: context
-              .findAncestorStateOfType<_LoginPageState>()!
-              ._emailController,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.next,
-          style: theme.textTheme.bodyLarge,
-          decoration: _inputDecoration(
-            context,
-            hintText: 'Enter your email',
-            icon: Icons.mail_outline_rounded,
-          ),
-          validator: InputValidators.validateEmail,
-        ),
-
-        const SizedBox(height: 15),
-
-        // ===============================================================
-        // PASSWORD
-        // ===============================================================
-        const _FieldLabel(
-          label: 'Password',
-        ),
-
-        const SizedBox(height: 7),
-
-        ValueListenableBuilder<bool>(
-          valueListenable: context
-              .findAncestorStateOfType<_LoginPageState>()!
-              ._obscurePassword,
-          builder: (context, obscure, _) {
-            final pageState =
-                context.findAncestorStateOfType<_LoginPageState>()!;
-
-            return TextFormField(
-              controller: pageState._passwordController,
-              obscureText: obscure,
-              textInputAction: TextInputAction.done,
-              style: theme.textTheme.bodyLarge,
-              decoration: _inputDecoration(
-                context,
-                hintText: 'Enter your password',
-                icon: Icons.lock_outline_rounded,
-                suffixIcon: IconButton(
-                  tooltip: obscure ? 'Show password' : 'Hide password',
+          Row(
+            children: [
+              Expanded(
+                child: _SocialButton(
+                  icon: FontAwesomeIcons.google,
+                  label: 'Google',
                   onPressed: () {
-                    pageState._obscurePassword.value = !obscure;
+                    // Connect your Google authentication event here.
                   },
-                  icon: Icon(
-                    obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    color: scheme.onSurface.withValues(alpha: 0.55),
-                    size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SocialButton(
+                  icon: FontAwesomeIcons.github,
+                  label: 'GitHub',
+                  onPressed: () {
+                    // Connect your GitHub authentication event here.
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          // ===============================================================
+          // REGISTER
+          // ===============================================================
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Don't have an account?",
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurface.withValues(alpha: 0.52),
+                ),
+              ),
+              const SizedBox(width: 5),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).pushReplacementNamed(RegisterPage.routeName);
+                },
+                child: Text(
+                  'Create account',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              validator: InputValidators.validatePassword,
-              onFieldSubmitted: (_) {
-                FocusScope.of(context).unfocus();
-              },
-            );
-          },
-        ),
-
-        const SizedBox(height: 7),
-
-        // ===============================================================
-        // REMEMBER + FORGOT
-        // ===============================================================
-        Row(
-          children: [
-            ValueListenableBuilder<bool>(
-              valueListenable: context
-                  .findAncestorStateOfType<_LoginPageState>()!
-                  ._rememberMe,
-              builder: (context, remember, _) {
-                final pageState =
-                    context.findAncestorStateOfType<_LoginPageState>()!;
-
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: Checkbox(
-                        value: remember,
-                        onChanged: (value) {
-                          pageState._rememberMe.value = value ?? false;
-                        },
-                        side: BorderSide(
-                          color: scheme.onSurface.withValues(alpha: 0.30),
-                        ),
-                        activeColor: scheme.primary,
-                        checkColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Remember me',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurface.withValues(alpha: 0.60),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-
-            const Spacer(),
-
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pushNamed(
-                  ResetPasswordPage.routeName,
-                );
-              },
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                'Forgot Password?',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 19),
-
-        // ===============================================================
-        // LOGIN BUTTON
-        // ===============================================================
-        BlocSelector<AuthBloc, AuthState, bool>(
-          selector: (state) => state.status == AuthStatus.loading,
-          builder: (context, isLoading) {
-            return _LoginButton(
-              isLoading: isLoading,
-              onPressed: () {
-                context
-                    .findAncestorStateOfType<_LoginPageState>()!
-                    ._onLoginPressed();
-              },
-            );
-          },
-        ),
-
-        const SizedBox(height: 20),
-
-        // ===============================================================
-        // SOCIAL LOGIN
-        // ===============================================================
-        const _SocialDivider(),
-
-        const SizedBox(height: 16),
-
-        Row(
-          children: [
-            Expanded(
-              child: _SocialButton(
-                icon: FontAwesomeIcons.google,
-                label: 'Google',
-                onPressed: () {
-                  // Connect your Google authentication event here.
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SocialButton(
-                icon: FontAwesomeIcons.github,
-                label: 'GitHub',
-                onPressed: () {
-                  // Connect your GitHub authentication event here.
-                },
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 18),
-
-        // ===============================================================
-        // REGISTER
-        // ===============================================================
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Don't have an account?",
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurface.withValues(alpha: 0.52),
-              ),
-            ),
-            const SizedBox(width: 5),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).pushReplacementNamed(
-                  RegisterPage.routeName,
-                );
-              },
-              child: Text(
-                'Create account',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -520,25 +514,17 @@ InputDecoration _inputDecoration(
   final surfaceColor = scheme.surfaceContainerHighest;
 
   final inputFill = Color.alphaBlend(
-    surfaceColor.withValues(
-      alpha: isDark ? 0.60 : 0.82,
-    ),
+    surfaceColor.withValues(alpha: isDark ? 0.60 : 0.82),
     theme.scaffoldBackgroundColor,
   );
 
-  final borderColor = scheme.primary.withValues(
-    alpha: isDark ? 0.32 : 0.20,
-  );
+  final borderColor = scheme.primary.withValues(alpha: isDark ? 0.32 : 0.20);
 
-  final mutedColor = scheme.onSurface.withValues(
-    alpha: isDark ? 0.55 : 0.50,
-  );
+  final mutedColor = scheme.onSurface.withValues(alpha: isDark ? 0.55 : 0.50);
 
   return InputDecoration(
     hintText: hintText,
-    hintStyle: theme.textTheme.bodyMedium?.copyWith(
-      color: mutedColor,
-    ),
+    hintStyle: theme.textTheme.bodyMedium?.copyWith(color: mutedColor),
     prefixIcon: Icon(
       icon,
       color: scheme.primary.withValues(alpha: 0.78),
@@ -547,41 +533,24 @@ InputDecoration _inputDecoration(
     suffixIcon: suffixIcon,
     filled: true,
     fillColor: inputFill,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: 18,
-      vertical: 16,
-    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(19),
-      borderSide: BorderSide(
-        color: borderColor,
-        width: 1,
-      ),
+      borderSide: BorderSide(color: borderColor, width: 1),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(19),
-      borderSide: BorderSide(
-        color: scheme.primary,
-        width: 1.7,
-      ),
+      borderSide: BorderSide(color: scheme.primary, width: 1.7),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(19),
-      borderSide: BorderSide(
-        color: scheme.error,
-        width: 1,
-      ),
+      borderSide: BorderSide(color: scheme.error, width: 1),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(19),
-      borderSide: BorderSide(
-        color: scheme.error,
-        width: 1.7,
-      ),
+      borderSide: BorderSide(color: scheme.error, width: 1.7),
     ),
-    errorStyle: theme.textTheme.bodySmall?.copyWith(
-      color: scheme.error,
-    ),
+    errorStyle: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
   );
 }
 
@@ -593,10 +562,7 @@ class _LoginButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
 
-  const _LoginButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
+  const _LoginButton({required this.isLoading, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -611,11 +577,7 @@ class _LoginButton extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             scheme.primary,
-            Color.lerp(
-                  scheme.primary,
-                  scheme.secondary,
-                  0.12,
-                ) ??
+            Color.lerp(scheme.primary, scheme.secondary, 0.12) ??
                 scheme.primary,
           ],
         ),
@@ -737,9 +699,7 @@ class _SocialButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           backgroundColor: scheme.surface,
           foregroundColor: scheme.onSurface,
-          side: BorderSide(
-            color: scheme.outline.withValues(alpha: 0.45),
-          ),
+          side: BorderSide(color: scheme.outline.withValues(alpha: 0.45)),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(
@@ -749,11 +709,7 @@ class _SocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FaIcon(
-              icon,
-              size: 18,
-              color: scheme.onSurface,
-            ),
+            FaIcon(icon, size: 18, color: scheme.onSurface),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
@@ -778,9 +734,7 @@ class _SocialButton extends StatelessWidget {
 class _FieldLabel extends StatelessWidget {
   final String label;
 
-  const _FieldLabel({
-    required this.label,
-  });
+  const _FieldLabel({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -799,7 +753,7 @@ class _FieldLabel extends StatelessWidget {
 }
 
 // ============================================================================
-// STATIC LOGO
+// STATIC LOGO (no shadow)
 // ============================================================================
 
 class _StaticLogo extends StatelessWidget {
@@ -807,24 +761,14 @@ class _StaticLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return RepaintBoundary(
-      child: Container(
+      child: SizedBox(
         width: 110,
         height: 110,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.18),
-              blurRadius: 16,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
         child: Image.asset(
           'assets/images/logo.png',
           fit: BoxFit.contain,
+          cacheWidth: 220, // loads the image smaller = faster, less memory
           filterQuality: FilterQuality.low,
         ),
       ),
@@ -841,8 +785,7 @@ class _UniLinkTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     return Text.rich(
       TextSpan(
@@ -939,6 +882,37 @@ class _FooterMessage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BACKGROUND (static, no animation = very light on performance)
+// ============================================================================
+
+class UniLinkBackground extends StatelessWidget {
+  const UniLinkBackground({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.alphaBlend(
+              scheme.primary.withValues(alpha: isDark ? 0.14 : 0.10),
+              theme.scaffoldBackgroundColor,
+            ),
+            theme.scaffoldBackgroundColor,
+          ],
+        ),
       ),
     );
   }

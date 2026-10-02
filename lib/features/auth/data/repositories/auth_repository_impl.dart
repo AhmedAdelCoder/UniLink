@@ -122,9 +122,12 @@ class AuthRepositoryImpl implements AuthRepository {
         return 'The password is too weak.';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      case 'network-request-failed':
+        return 'No internet connection. Please check your network.';
       default:
         return e.message ?? 'Authentication failed. Please try again.';
     }
   }
 }
-

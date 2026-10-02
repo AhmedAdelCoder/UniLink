@@ -1,10 +1,20 @@
-import mongoose from 'mongoose';
+import { NextFunction } from 'express';
+import mongoose, { Document, Model } from 'mongoose';
 
-const chatSchema = new mongoose.Schema(
+interface IChat extends Document {
+  user_1_id: string;
+  user_2_id: string;
+  last_message: string | null;
+  last_message_sender_id: string | null;
+  last_message_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const chatSchema = new mongoose.Schema<IChat>(
   {
     // user_1_id is always the lexicographically smaller UUID.
     // This guarantees one thread per pair of users.
-
     user_1_id: {
       type: String,
       required: true,
@@ -56,13 +66,13 @@ chatSchema.index({
 });
 
 // Normalize the user pair and prevent self-chat
-chatSchema.pre('validate', function (next) {
+chatSchema.pre('validate', function () {
   if (!this.user_1_id || !this.user_2_id) {
-    return next();
+    return ;
   }
 
   if (this.user_1_id === this.user_2_id) {
-    return next(new Error('A user cannot create a chat with themselves'));
+    return new Error('A user cannot create a chat with themselves');
   }
 
   if (this.user_1_id > this.user_2_id) {
@@ -72,7 +82,8 @@ chatSchema.pre('validate', function (next) {
     ];
   }
 
-  next();
 });
 
-export default mongoose.model('Chat', chatSchema);
+const Chat: Model<IChat> = mongoose.model<IChat>('Chat', chatSchema);
+
+export default Chat;

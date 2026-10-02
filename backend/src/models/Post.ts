@@ -1,6 +1,17 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const postSchema = new mongoose.Schema(
+interface IPost extends Document {
+  author_id: string;
+  content: string;
+  image_url: string | null;
+  skills_tags: string[];
+  like_count: number;
+  comment_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const postSchema = new mongoose.Schema<IPost>(
   {
     author_id: {
       type: String,
@@ -45,4 +56,6 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ author_id: 1, created_at: -1 });
 postSchema.index({ created_at: -1 });
 
-export default mongoose.model('Post', postSchema);
+const Post: Model<IPost> = mongoose.model<IPost>('Post', postSchema);
+
+export default Post;

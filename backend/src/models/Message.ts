@@ -1,6 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const messageSchema = new mongoose.Schema(
+interface IMessage extends Document {
+  chat_id: mongoose.Types.ObjectId;
+  sender_id: string;
+  content: string;
+  is_read: boolean;
+  read_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const messageSchema = new mongoose.Schema<IMessage>(
   {
     chat_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -50,4 +60,9 @@ messageSchema.index({
 // When creating a message, update the parent Chat:
 // last_message, last_message_sender_id, last_message_at.
 
-export default mongoose.model('Message', messageSchema);
+const Message: Model<IMessage> = mongoose.model<IMessage>(
+  'Message',
+  messageSchema
+);
+
+export default Message;

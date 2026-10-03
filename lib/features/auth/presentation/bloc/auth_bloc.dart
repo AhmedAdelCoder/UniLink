@@ -34,6 +34,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
+  // ===========================================================================
+  // AUTH CHECK (used by the splash screen)
+  // ===========================================================================
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
@@ -46,7 +49,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
-          user: null,
+          clearUser: true,
           errorMessage: _mapFailureToMessage(failure),
         ),
       ),
@@ -60,9 +63,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  
-  
-  
+  // ===========================================================================
+  // LOGIN
+  // ===========================================================================
   Future<void> _onLoginRequested(
     AuthLoginRequested event,
     Emitter<AuthState> emit,
@@ -82,17 +85,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated, 
-          user: user,
+          status: AuthStatus.authenticated,
+          user: user, // keep the logged-in user
           errorMessage: null,
         ),
       ),
     );
   }
 
-  
-  
-  
+  // ===========================================================================
+  // REGISTER
+  // ===========================================================================
   Future<void> _onRegisterRequested(
     AuthRegisterRequested event,
     Emitter<AuthState> emit,
@@ -117,7 +120,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ),
       (user) => emit(
         state.copyWith(
-          status: AuthStatus.authenticated, 
+          status: AuthStatus.authenticated,
           user: user,
           errorMessage: null,
         ),
@@ -125,9 +128,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  
-  
-  
+  // ===========================================================================
+  // RESET PASSWORD
+  // ===========================================================================
   Future<void> _onResetPasswordRequested(
     AuthResetPasswordRequested event,
     Emitter<AuthState> emit,
@@ -152,7 +155,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
- 
+  // ===========================================================================
+  // LOGOUT
+  // ===========================================================================
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
@@ -171,13 +176,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (_) => emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
-          user: null,
+          clearUser: true, // clears the old user on logout
           errorMessage: null,
         ),
       ),
     );
   }
-
 
   String _mapFailureToMessage(Failure failure) {
     return failure.message;

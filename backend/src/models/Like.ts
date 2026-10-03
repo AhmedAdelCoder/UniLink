@@ -1,6 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const likeSchema = new mongoose.Schema(
+interface ILike extends Document {
+  user_id: string;
+  post_id: mongoose.Types.ObjectId | null;
+  comment_id: mongoose.Types.ObjectId | null;
+  created_at: Date;
+}
+
+const likeSchema = new mongoose.Schema<ILike>(
   {
     user_id: {
       type: String,
@@ -28,19 +35,15 @@ const likeSchema = new mongoose.Schema(
 );
 
 // Exactly one of post_id / comment_id must be set
-likeSchema.pre('validate', function (next) {
+likeSchema.pre('validate', function () {
   const hasPost = this.post_id != null;
   const hasComment = this.comment_id != null;
 
   if (hasPost === hasComment) {
-    return next(
-      new Error(
-        'Like must reference exactly one of post_id or comment_id'
-      )
+    throw new Error(
+      'Like must reference exactly one of post_id or comment_id'
     );
   }
-
-  next();
 });
 
 // One like per user per post
@@ -65,4 +68,6 @@ likeSchema.index(
   }
 );
 
-export default mongoose.model('Like', likeSchema);
+const Like: Model<ILike> = mongoose.model<ILike>('Like', likeSchema);
+
+export default Like;

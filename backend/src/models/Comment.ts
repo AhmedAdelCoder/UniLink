@@ -1,6 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const commentSchema = new mongoose.Schema(
+interface IComment extends Document {
+  post_id: mongoose.Types.ObjectId;
+  author_id: string;
+  parent_comment_id: mongoose.Types.ObjectId | null;
+  content: string;
+  like_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+const commentSchema = new mongoose.Schema<IComment>(
   {
     post_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -54,4 +64,9 @@ commentSchema.index({
 // if parent_comment_id is set, the parent comment must have
 // parent_comment_id === null.
 
-export default mongoose.model('Comment', commentSchema);
+const Comment: Model<IComment> = mongoose.model<IComment>(
+  'Comment',
+  commentSchema
+);
+
+export default Comment;

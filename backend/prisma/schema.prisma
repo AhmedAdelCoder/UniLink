@@ -52,6 +52,11 @@ enum ConnectionStatus {
   removed
 }
 
+enum OAuthProvider {
+  google
+  github
+}
+
 // ------------------------------------------------------------
 // USERS
 // ------------------------------------------------------------
@@ -59,9 +64,10 @@ enum ConnectionStatus {
 model User {
   id               String    @id @default(uuid()) @db.Uuid
   email            String    @unique @db.VarChar(255)
-  passwordHash     String    @map("password_hash")
+  passwordHash     String?   @map("password_hash")
   fullName         String    @map("full_name") @db.VarChar(150)
-  role             Role
+  role             Role      @default(student)
+  emailVerified    Boolean   @default(false) @map("email_verified")
 
   // student-oriented profile fields (nullable for recruiters)
   photoUrl         String?   @map("photo_url")
@@ -92,9 +98,40 @@ model User {
   connectionsReceived   Connection[]    @relation("ConnectionReceiver")
   follows               Follow[]        @relation("StudentFollows")
   followedBy            Follow[]        @relation("RecruiterFollowers")
+  oauthAccounts         OAuthAccount[]
+  emailOtps             EmailOtp[]
 
   @@index([role])
   @@map("users")
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String   @db.Uuid 
+  provider          OAuthProvider
+  providerAccountId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model EmailOtp {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  codeHash  String   @map("code_hash")
+  attempts  Int      @default(0)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_otps")
 }
 
 // ------------------------------------------------------------

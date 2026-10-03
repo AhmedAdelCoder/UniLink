@@ -11,10 +11,6 @@ abstract class AuthRepository {
     required UserRole role,
   });
 
-  
-  
-  Future<Either<Failure, bool>> isEmailRegistered({required String email});
-
   Future<Either<Failure, AppUser>> login({
     required String email,
     required String password,
@@ -27,5 +23,7 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> logout();
 
   Future<Either<Failure, AppUser>> getCurrentUser();
+
+  Stream<AppUser?> watchAuthState();
 }
 

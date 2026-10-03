@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/config/injection_container.dart';
 import '../../chat/presentation/pages/chat_list_page.dart';
-import '../../jobs/presentation/bloc/jobs_bloc.dart';
 import '../../jobs/presentation/pages/jobs_page.dart';
-import '../../posts/presentation/bloc/feed_bloc.dart';
 import '../../posts/presentation/pages/feed_page.dart';
 import '../../profile/presentation/pages/profile_page.dart';
 import '../../search/presentation/pages/search_page.dart';
@@ -27,18 +23,12 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
 
-  late final List<Widget> _pages = [
-    BlocProvider<FeedBloc>(
-      create: (_) => sl<FeedBloc>(),
-      child: const FeedPage(),
-    ),
-    BlocProvider<JobsBloc>(
-      create: (_) => sl<JobsBloc>(),
-      child: const JobsPage(),
-    ),
-    const SearchPage(),
-    const ChatListPage(),
-    const ProfilePage(),
+  late final List<Widget> _pages = const [
+    FeedPage(),
+    JobsPage(),
+    SearchPage(),
+    ChatListPage(),
+    ProfilePage(),
   ];
 
   @override

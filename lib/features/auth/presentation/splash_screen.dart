@@ -23,9 +23,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-
     final prefs = await SharedPreferences.getInstance();
     final onboardingDone = prefs.getBool(kOnboardingCompletedKey) ?? false;
 

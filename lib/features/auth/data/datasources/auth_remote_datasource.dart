@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import 'package:unilink/features/request/request.dart';
 
 import '../../domain/entities/app_user.dart';
 import '../models/app_user_model.dart';
@@ -13,18 +12,15 @@ abstract class AuthRemoteDataSource {
     required UserRole role,
   });
 
-  Future<bool> isEmailRegistered({required String email});
-
-  Future<AppUserModel> login({
-    required String email,
-    required String password,
-  });
+  Future<AppUserModel> login({required String email, required String password});
 
   Future<void> resetPassword({required String email});
 
   Future<void> logout();
 
   Future<AppUserModel> getCurrentUser();
+
+  Stream<AppUserModel?> watchAuthState();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -34,8 +30,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({
     required fb.FirebaseAuth firebaseAuth,
     required FirebaseFirestore firestore,
-  })  : _firebaseAuth = firebaseAuth,
-        _firestore = firestore;
+  }) : _firebaseAuth = firebaseAuth,
+       _firestore = firestore;
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
@@ -62,21 +58,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       role: role,
     );
 
-    await _usersCollection.doc(uid).set(
-          userDoc.toFirestoreNewUser(),
-          SetOptions(merge: true),
-        );
-
-    await sendWelcomeEmail(email, name);
+    await _usersCollection
+        .doc(uid)
+        .set(userDoc.toFirestoreNewUser(), SetOptions(merge: true));
 
     return userDoc;
-  }
-
-  @override
-  Future<bool> isEmailRegistered({required String email}) async {
-    final methods =
-        await _firebaseAuth.fetchSignInMethodsForEmail(email.trim());
-    return methods.isNotEmpty;
   }
 
   @override
@@ -142,5 +128,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     return AppUserModel.fromFirestore(doc.id, doc.data()!);
+  }
+
+  @override
+  Stream<AppUserModel?> watchAuthState() {
+    return _firebaseAuth.authStateChanges().asyncMap((firebaseUser) async {
+      if (firebaseUser == null) {
+        return null;
+      }
+
+      final doc = await _usersCollection.doc(firebaseUser.uid).get();
+      if (!doc.exists) {
+        return AppUserModel(
+          id: firebaseUser.uid,
+          email: firebaseUser.email ?? '',
+          fullName: firebaseUser.displayName ?? '',
+          role: UserRole.student,
+        );
+      }
+
+      return AppUserModel.fromFirestore(doc.id, doc.data()!);
+    });
   }
 }

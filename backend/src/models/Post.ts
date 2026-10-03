@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema } from 'mongoose';
 
 export interface IPost {
   author_id: string;
@@ -21,11 +21,14 @@ const postSchema = new Schema<IPost>(
     comment_count: { type: Number, default: 0 },
   },
   {
-    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
-  },
+    timestamps: {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  }
 );
 
 postSchema.index({ author_id: 1, created_at: -1 });
 postSchema.index({ created_at: -1 });
 
-export default mongoose.model<IPost>("Post", postSchema);
+export default mongoose.model<IPost>('Post', postSchema);

@@ -16,15 +16,21 @@ class ResetPasswordPage extends StatefulWidget {
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _emailFocusNode = FocusNode();
 
   @override
   void dispose() {
     _emailController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
   void _onSubmit() {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     context.read<AuthBloc>().add(
       AuthResetPasswordRequested(_emailController.text.trim()),
@@ -33,175 +39,241 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: BlocConsumer<AuthBloc, AuthState>(
-                listener: (context, state) {
-                  if (state.status == AuthStatus.failure &&
-                      state.errorMessage != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.errorMessage!)),
-                    );
-                  } else if (state.status ==
-                      AuthStatus.passwordResetEmailSent) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Check your email for reset link 📩',
-                        ),
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  }
-                },
-                builder: (context, state) {
-                  final isLoading =
-                      state.status == AuthStatus.loading;
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: BlocListener<AuthBloc, AuthState>(
+            listenWhen: (previous, current) =>
+                previous.status != current.status,
+            listener: (context, state) {
+              if (state.status == AuthStatus.failure &&
+                  state.errorMessage != null) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+              }
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      
-                      Center(
-                        child: Column(
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              height: 150,
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'UniLink',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+              if (state.status == AuthStatus.passwordResetEmailSent) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Check your email for the password reset link.',
+                    ),
+                  ),
+                );
+
+                Navigator.of(context).pop();
+              }
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight - 52,
+                        maxWidth: 620,
+                      ),
+                      child: Center(
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const _ResetPasswordLogo(),
+
+                              const SizedBox(height: 10),
+
+                              Text(
+                                'UniLink',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      const SizedBox(height: 30),
+                              const SizedBox(height: 6),
 
-                      
-                      Card(
-                        elevation: 6,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.stretch,
-                              children: [
-                                
-                                Text(
-                                  'Reset Password',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge!
-                                      .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              Text(
+                                'Secure your account',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
+                              ),
 
-                                const SizedBox(height: 8),
+                              const SizedBox(height: 28),
 
-                                
-                                Text(
-                                  'Enter your email and we’ll send you a reset link.',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium,
-                                ),
-
-                                const SizedBox(height: 24),
-
-                                
-                                TextFormField(
-                                  controller: _emailController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Email',
-                                    prefixIcon:
-                                        const Icon(Icons.email),
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  keyboardType:
-                                      TextInputType.emailAddress,
-                                  validator:
-                                      InputValidators.validateEmail,
-                                ),
-
-                                const SizedBox(height: 24),
-
-                                
-                                SizedBox(
-                                  height: 50,
-                                  child: FilledButton(
-                                    style: FilledButton.styleFrom(
-                                      shape:
-                                          RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    onPressed: isLoading
-                                        ? null
-                                        : _onSubmit,
-                                    child: isLoading
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child:
-                                                CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Send Reset Link',
-                                            style: TextStyle(
-                                                fontSize: 16),
+                              _ResetPasswordCard(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      'Reset Password',
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
                                           ),
-                                  ),
-                                ),
+                                    ),
 
-                                const SizedBox(height: 12),
+                                    const SizedBox(height: 8),
 
-                                
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(context),
-                                  child:
-                                      const Text('Back to Login'),
+                                    Text(
+                                      'Enter your email address and we’ll send you a link to reset your password.',
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                            height: 1.5,
+                                          ),
+                                    ),
+
+                                    const SizedBox(height: 26),
+
+                                    TextFormField(
+                                      controller: _emailController,
+                                      focusNode: _emailFocusNode,
+                                      textInputAction: TextInputAction.done,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autofillHints: const [
+                                        AutofillHints.email,
+                                      ],
+                                      validator: InputValidators.validateEmail,
+                                      onFieldSubmitted: (_) => _onSubmit(),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Email',
+                                        hintText: 'Enter your email',
+                                        prefixIcon: Icon(Icons.email_outlined),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 22),
+
+                                    BlocSelector<AuthBloc, AuthState, bool>(
+                                      selector: (state) =>
+                                          state.status == AuthStatus.loading,
+                                      builder: (context, isLoading) {
+                                        return SizedBox(
+                                          height: 52,
+                                          child: FilledButton(
+                                            onPressed: isLoading
+                                                ? null
+                                                : _onSubmit,
+                                            child: isLoading
+                                                ? const SizedBox(
+                                                    height: 21,
+                                                    width: 21,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2.2,
+                                                        ),
+                                                  )
+                                                : const Text(
+                                                    'Send Reset Link',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    TextButton(
+                                      onPressed: () {
+                                        FocusScope.of(context).unfocus();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Back to Login'),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              Text(
+                                'YOUR NEXT\nOPPORTUNITY AWAITS',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  letterSpacing: 1.4,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ResetPasswordLogo extends StatelessWidget {
+  const _ResetPasswordLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: RepaintBoundary(
+        child: Image.asset(
+          'assets/images/logo.png',
+          height: 110,
+          width: 180,
+          fit: BoxFit.contain,
+          cacheWidth: 220,
+          filterQuality: FilterQuality.low,
+        ),
+      ),
+    );
+  }
+}
+
+class _ResetPasswordCard extends StatelessWidget {
+  final Widget child;
+
+  const _ResetPasswordCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(
+          color: colorScheme.primary.withValues(alpha: 0.12),
+          width: 1,
+        ),
+      ),
+      child: Padding(padding: const EdgeInsets.all(26), child: child),
     );
   }
 }

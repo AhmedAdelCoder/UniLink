@@ -18,6 +18,7 @@ const startServer = async (): Promise<void> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Server startup failed:', message);
+
     process.exit(1);
   }
 };

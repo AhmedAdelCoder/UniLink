@@ -48,3 +48,12 @@ node_modules/
  
 
 .vercel
+
+# Backend generated files
+backend/dist/
+
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.development
+backend/.env.production

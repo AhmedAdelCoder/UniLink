@@ -1,8 +1,6 @@
-import { Request  , Response } from "express";
-import { authService, IUser, login_data } from "../services/auth.service.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { success } from "zod";
-
+import { Request, Response } from "express";
+import { authService, IUser, login_data } from "./auth.service.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
 const auth_service = new authService() ;
 
 export const register = asyncHandler(

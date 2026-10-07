@@ -3,7 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
-import authRoutes from "./routes/auth.route.js";
+import authRoutes from "./modules/auth/auth.route.js";
+import feedRoutes from "./modules/feed/feed.route.js";
 
 const app = express();
 
@@ -27,8 +28,11 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
   });
 });
 
+//! ===== feauther ====
 //auth
 app.use('/api/auth' , authRoutes) ;
+//Feed
+app.use("/api/feed", feedRoutes);
 
 //errorMiddleware
 app.use(errorMiddleware);

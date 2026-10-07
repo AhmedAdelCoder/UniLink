@@ -1,11 +1,19 @@
-import { Role } from "@prisma/client";
-import prisma from "../config/postgres.js";
-import { generateAccessToken } from "../utils/jwt.js";
-import { generateRefreshToken, hashRefreshToken } from "../utils/refreshToken.js";
-import env from "../config/env.js";
+import { Role, OAuthProvider } from "@prisma/client";
+
+import prisma from "../../config/postgres.js";
+
+import { generateAccessToken } from "../../utils/jwt.js";
+
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+} from "../../utils/refreshToken.js";
+
+import env from "../../config/env.js";
+
 import { OAuth2Client } from "google-auth-library";
-import { AppError } from "../utils/AppError.js";
-import { OAuthProvider } from "@prisma/client";
+
+import { AppError } from "../../utils/AppError.js";
 
 const googleClient = new OAuth2Client(env.googleClientId);
 

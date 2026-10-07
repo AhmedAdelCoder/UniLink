@@ -1,11 +1,22 @@
-import prisma from "../config/postgres.js";
-import { AppError } from "../utils/AppError.js";
-import { generateAccessToken } from "../utils/jwt.js";
-import { comparePassword, hashPassword } from "../utils/password.js";
-import { generateRefreshToken , hashRefreshToken} from "../utils/refreshToken.js";
-import env from "../config/env.js";
+import prisma from "../../config/postgres.js";
+
+import { AppError } from "../../utils/AppError.js";
+
+import { generateAccessToken } from "../../utils/jwt.js";
+
+import { comparePassword, hashPassword } from "../../utils/password.js";
+
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+} from "../../utils/refreshToken.js";
+
+import env from "../../config/env.js";
+
 import { Role } from "@prisma/client";
+
 import { OtpService } from "./Otp.service.js";
+
 
 export interface IUser {
     fullName : string ;

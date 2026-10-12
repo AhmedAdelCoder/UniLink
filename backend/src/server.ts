@@ -16,11 +16,8 @@ const startServer = async (): Promise<void> => {
       console.log(`UniLink Backend running on port ${env.port}`);
     });
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Server startup failed:', error.message);
-    } else {
-      console.error('Server startup failed:', error);
-    }
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Server startup failed:', message);
 
     process.exit(1);
   }

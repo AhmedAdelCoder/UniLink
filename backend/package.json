@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "UniLink Backend API",
   "type": "module",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts"
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "keywords": [
     "unilink",

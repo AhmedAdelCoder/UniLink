@@ -1,8 +1,8 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Schema, Types } from 'mongoose';
 
-interface IMessage extends Document {
-  chat_id: mongoose.Types.ObjectId;
-  sender_id: string;
+export interface IMessage {
+  chat_id: Types.ObjectId;
+  sender_id: string; // app-level ref -> PostgreSQL users.id
   content: string;
   is_read: boolean;
   read_at: Date | null;
@@ -10,30 +10,26 @@ interface IMessage extends Document {
   updated_at: Date;
 }
 
-const messageSchema = new mongoose.Schema<IMessage>(
+const messageSchema = new Schema<IMessage>(
   {
     chat_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Chat',
       required: true,
     },
-
     sender_id: {
       type: String,
       required: true,
-    }, // app-level ref -> PostgreSQL users.id
-
+    },
     content: {
       type: String,
       required: true,
       maxlength: 2000,
     },
-
     is_read: {
       type: Boolean,
       default: false,
     },
-
     read_at: {
       type: Date,
       default: null,
@@ -57,12 +53,8 @@ messageSchema.index({
 
 // Enforced in the service layer:
 // sender_id must belong to the chat.
+//
 // When creating a message, update the parent Chat:
 // last_message, last_message_sender_id, last_message_at.
 
-const Message: Model<IMessage> = mongoose.model<IMessage>(
-  'Message',
-  messageSchema
-);
-
-export default Message;
+export default mongoose.model<IMessage>('Message', messageSchema);

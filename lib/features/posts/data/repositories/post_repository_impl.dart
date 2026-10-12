@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dartz/dartz.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/comment.dart';
@@ -11,9 +9,6 @@ import '../datasources/posts_remote_datasource.dart';
 class PostRepositoryImpl implements PostRepository {
   final PostsRemoteDataSource remoteDataSource;
 
-  
-  final Map<String, DocumentSnapshot<Map<String, dynamic>>> _postSnapshots = {};
-
   PostRepositoryImpl({required this.remoteDataSource});
 
   @override
@@ -22,24 +17,13 @@ class PostRepositoryImpl implements PostRepository {
     int limit = 10,
   }) async {
     try {
-      final startAfter = lastPost != null ? _postSnapshots[lastPost.id] : null;
-      final result = await remoteDataSource.getFeedPage(
-        startAfter: startAfter,
+      final posts = await remoteDataSource.getFeedPage(
+        lastPost: lastPost,
         limit: limit,
       );
-
-      
-      if (result.lastDocument != null) {
-        _postSnapshots[result.lastDocument!.id] = result.lastDocument!;
-      }
-
-      return Right(result.posts);
-    } on fb.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Authentication error'));
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+      return Right(posts);
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -56,12 +40,8 @@ class PostRepositoryImpl implements PostRepository {
         imageFilePath: imageFilePath,
       );
       return Right(post);
-    } on fb.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Authentication error'));
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -70,10 +50,8 @@ class PostRepositoryImpl implements PostRepository {
     try {
       await remoteDataSource.deletePost(postId);
       return const Right(null);
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -82,12 +60,8 @@ class PostRepositoryImpl implements PostRepository {
     try {
       await remoteDataSource.likePost(postId);
       return const Right(null);
-    } on fb.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Authentication error'));
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -96,12 +70,8 @@ class PostRepositoryImpl implements PostRepository {
     try {
       await remoteDataSource.unlikePost(postId);
       return const Right(null);
-    } on fb.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Authentication error'));
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -112,17 +82,14 @@ class PostRepositoryImpl implements PostRepository {
     int limit = 20,
   }) async {
     try {
-      
       final comments = await remoteDataSource.getComments(
         postId: postId,
-        startAfter: null,
+        lastComment: lastComment,
         limit: limit,
       );
       return Right(comments);
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
 
@@ -137,13 +104,30 @@ class PostRepositoryImpl implements PostRepository {
         text: text,
       );
       return Right(comment);
-    } on fb.FirebaseAuthException catch (e) {
-      return Left(AuthFailure(e.message ?? 'Authentication error'));
-    } on FirebaseException catch (e) {
-      return Left(ServerFailure(e.message ?? 'Unexpected server error'));
-    } catch (_) {
-      return const Left(ServerFailure('Unexpected error occurred'));
+    } catch (e) {
+      return Left(_mapExceptionToFailure(e));
     }
   }
-}
 
+  Failure _mapExceptionToFailure(Object e) {
+    if (e is Failure) return e;
+
+    String? message;
+    try {
+      message = (e as dynamic).message as String?;
+    } catch (_) {}
+
+    final raw = message ?? e.toString();
+    final clean =
+        raw.replaceFirst(RegExp(r'^[A-Za-z0-9_]*Exception:? *'), '').trim();
+    final finalMessage = clean.isNotEmpty ? clean : 'Unexpected error occurred';
+
+    final lower = finalMessage.toLowerCase();
+    if (lower.contains('auth') ||
+        lower.contains('not logged in') ||
+        lower.contains('not authenticated')) {
+      return AuthFailure(finalMessage);
+    }
+    return ServerFailure(finalMessage);
+  }
+}

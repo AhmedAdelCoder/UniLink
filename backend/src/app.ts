@@ -1,9 +1,10 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
-import authRoutes from "./routes/auth.route.js";
+import authRoutes from "./modules/auth/auth.route.js";
+import feedRoutes from "./modules/feed/feed.route.js";
 
 const app = express();
 
@@ -20,17 +21,25 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Health Check
-app.get("/api/v1/health", (req, res) => {
+app.get("/api/v1/health", (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "UniLink Backend is running ",
+    message: "UniLink Backend is running",
   });
 });
 
-//auth
-app.use('/api/auth' , authRoutes) ;
+//! ===== feauther ====
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/feed", feedRoutes);
+
 
 //errorMiddleware
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
 app.use(errorMiddleware);
+
+
 
 export default app;

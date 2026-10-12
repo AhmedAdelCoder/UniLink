@@ -1,8 +1,7 @@
-import prisma from "../config/postgres.js";
-import { AppError } from "../utils/AppError.js";
-import { sendOtpEmail } from "../utils/Mailer.js";
-import { generateOtp, hashOtp, isOtpMatch } from "../utils/Otp.js";
-
+import prisma from "../../config/postgres.js";
+import { AppError } from "../../utils/AppError.js";
+import { sendOtpEmail } from "../../utils/Mailer.js";
+import { generateOtp, hashOtp, isOtpMatch } from "../../utils/Otp.js";
 
 const OTP_TTL_MS = 10 * 60 * 1000;   
 const RESEND_COOLDOWN_MS = 60 * 1000; 

@@ -1,27 +1,25 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Schema, Types } from 'mongoose';
 
-interface ILike extends Document {
-  user_id: string;
-  post_id: mongoose.Types.ObjectId | null;
-  comment_id: mongoose.Types.ObjectId | null;
+export interface ILike {
+  user_id: string; // app-level ref -> PostgreSQL users.id
+  post_id: Types.ObjectId | null;
+  comment_id: Types.ObjectId | null;
   created_at: Date;
 }
 
-const likeSchema = new mongoose.Schema<ILike>(
+const likeSchema = new Schema<ILike>(
   {
     user_id: {
       type: String,
       required: true,
-    }, // app-level ref -> PostgreSQL users.id
-
+    },
     post_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Post',
       default: null,
     },
-
     comment_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Comment',
       default: null,
     },
@@ -52,7 +50,7 @@ likeSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      post_id: { $exists: true },
+      post_id: { $type: 'objectId' },
     },
   }
 );
@@ -63,11 +61,9 @@ likeSchema.index(
   {
     unique: true,
     partialFilterExpression: {
-      comment_id: { $exists: true },
+      comment_id: { $type: 'objectId' },
     },
   }
 );
 
-const Like: Model<ILike> = mongoose.model<ILike>('Like', likeSchema);
-
-export default Like;
+export default mongoose.model<ILike>('Like', likeSchema);

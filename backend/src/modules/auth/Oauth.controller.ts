@@ -1,6 +1,6 @@
-import { Request , Response } from "express";
-import { oAuthService } from "../services/oauth.service.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import { Request, Response } from "express";
+import { oAuthService } from "./oauth.service.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
 
 
 const oauth = new oAuthService() ;

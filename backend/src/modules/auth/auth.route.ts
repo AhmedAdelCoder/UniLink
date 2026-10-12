@@ -1,11 +1,33 @@
-import { Router } from "express";
-import { authLimiter } from "../middlewares/rateLimiter.js";
-import { validate } from "../middlewares/validation.js";
-import { forgotPasswordSchema, loginSchema, logoutSchema, refreshAccessTokenSchema, registerSchema, resetPasswordSchema } from "../validation/auth.validation.js";
-import { forgetPassword, login, logout, refreshAccessToken, register, resendOtp, resetPassword, verifyEmail } from "../controllers/auth.controller.js";
-import { googleLoginSchema, resendOtpSchema, verifyEmailSchema } from "../validation/oauth.validation.js";
-import { googleLogin } from "../controllers/Oauth.controller.js";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  logoutSchema,
+  refreshAccessTokenSchema,
+  registerSchema,
+  resetPasswordSchema,
+} from "./validation/auth.validation.js";
 
+import {
+  googleLoginSchema,
+  resendOtpSchema,
+  verifyEmailSchema,
+} from "./validation/oauth.validation.js";
+
+import {
+  forgetPassword,
+  login,
+  logout,
+  refreshAccessToken,
+  register,
+  resendOtp,
+  resetPassword,
+  verifyEmail,
+} from "./auth.controller.js";
+
+import { googleLogin } from "./Oauth.controller.js";
+import { Router } from "express";
+import { authLimiter } from "../../middlewares/rateLimiter.js";
+import { validate } from "../../middlewares/validation.js";
 
 const authRoutes = Router() ;
 

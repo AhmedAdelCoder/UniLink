@@ -29,12 +29,17 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
 });
 
 //! ===== feauther ====
-//auth
-app.use('/api/auth' , authRoutes) ;
-//Feed
-app.use("/api/feed", feedRoutes);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/feed", feedRoutes);
+
 
 //errorMiddleware
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
 app.use(errorMiddleware);
+
+
 
 export default app;

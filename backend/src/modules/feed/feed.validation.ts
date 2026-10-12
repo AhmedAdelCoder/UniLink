@@ -18,6 +18,24 @@ export const createPostSchema = z.object({
   skills_tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
 });
 
+// ================= Update Post =================
+
+export const updatePostSchema = z
+  .object({
+    content: z.string().trim().min(1).max(3000).optional(),
+    image_url: z.url().nullable().optional(),
+    skills_tags: z
+      .array(z.string().trim().min(1).max(30))
+      .max(10)
+      .optional(),
+  })
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    { message: "At least one field must be provided" }
+  );
+
+export type UpdatePostInput = z.infer<typeof updatePostSchema>;
+
 //=========== part Likes ==============
 export const postIdParamSchema = z.object({
   postId: objectIdSchema,
@@ -35,6 +53,15 @@ export const getCommentsQuerySchema = z.object({
   cursor: z.string().optional(),
 });
 
+// ============ postIdParamSchema ==============
+
+export const commentIdParamSchema = z.object({
+  commentId: objectIdSchema,
+});
+
+export type CommentIdParam = z.infer<
+  typeof commentIdParamSchema
+>;
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type GetFeedQuery = z.infer<typeof getFeedQuerySchema>;

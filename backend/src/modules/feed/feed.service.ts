@@ -4,11 +4,11 @@ import Post from "./models/Post.js";
 import Like from "./models/Like.js";
 import Comment from "./models/Comment.js";
 import prisma from "../../config/postgres.js";
+
 import type {
   CreatePostInput,
-  GetFeedQuery,
-  PostIdParam,
   CreateCommentInput,
+  UpdatePostInput,
 } from "./feed.validation.js";
 
 import { AppError } from "../../utils/AppError.js";
@@ -145,7 +145,9 @@ export const getFeed = async (
   };
 };
 
-//========== Create Post ==========
+//!================== POST ========================
+
+//todo========>Create Post
 export const createPost = async (
   authorId: string,
   input: CreatePostInput
@@ -181,83 +183,203 @@ export const createPost = async (
   };
 };
 
-// ========== Like Post ==========
-export const likePost = async (
+
+//todo========> Update Post
+
+export const updatePost = async (
   userId: string,
-  postId: string
+  postId: string,
+  input: UpdatePostInput
 ) => {
-  const post = await Post.findById(postId).select("_id");
+  const post = await Post.findById(postId).select("author_id");
 
   if (!post) {
     throw new AppError("Post not found", 404);
   }
 
-  try {
-    await Like.create({
-      user_id: userId,
-      post_id: postId,
-    });
-  } catch (error: unknown) {
-    if (isMongoDuplicateKeyError(error)) {
-      throw new AppError("Post already liked", 409);
-    }
-
-    throw error;
+  if (post.author_id !== userId) {
+    throw new AppError("You are not allowed to update this post", 403);
   }
 
-  const updatedPost = await Post.findByIdAndUpdate(
-    postId,
-    { $inc: { like_count: 1 } },
+  const updatedPost = await Post.findOneAndUpdate(
+    {
+      _id: postId,
+      author_id: userId,
+    },
+    {
+      $set: input,
+    },
     {
       new: true,
-      select: "like_count",
+      runValidators: true,
     }
-  );
+  ).lean();
 
   if (!updatedPost) {
     throw new AppError("Post not found", 404);
   }
 
   return {
-    liked: true,
+    id: updatedPost._id,
+    author_id: updatedPost.author_id,
+    content: updatedPost.content,
+    image_url: updatedPost.image_url,
+    skills_tags: updatedPost.skills_tags,
     like_count: updatedPost.like_count,
+    comment_count: updatedPost.comment_count,
+    created_at: updatedPost.created_at,
+    updated_at: updatedPost.updated_at,
   };
 };
 
-//============ unlikePost =================
-export const unlikePost = async (
+//todo========> Like Post 
+  export const likePost = async (
+    userId: string,
+    postId: string
+  ) => {
+    const post = await Post.findById(postId).select("_id");
+
+    if (!post) {
+      throw new AppError("Post not found", 404);
+    }
+
+    try {
+      await Like.create({
+        user_id: userId,
+        post_id: postId,
+      });
+    } catch (error: unknown) {
+      if (isMongoDuplicateKeyError(error)) {
+        throw new AppError("Post already liked", 409);
+      }
+
+      throw error;
+    }
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $inc: { like_count: 1 } },
+      {
+        new: true,
+        select: "like_count",
+      }
+    );
+
+    if (!updatedPost) {
+      throw new AppError("Post not found", 404);
+    }
+
+    return {
+      liked: true,
+      like_count: updatedPost.like_count,
+    };
+  };
+
+//todo========> unlikePost 
+    export const unlikePost = async (
+      userId: string,
+      postId: string
+    ) => {
+      const deletedLike = await Like.findOneAndDelete({
+        user_id: userId,
+        post_id: postId,
+      });
+
+      if (!deletedLike) {
+        throw new AppError("Post not liked", 404);
+      }
+
+      const updatedPost = await Post.findByIdAndUpdate(
+        postId,
+        { $inc: { like_count: -1 } },
+        {
+          new: true,
+          select: "like_count",
+        }
+      );
+
+      if (!updatedPost) {
+        throw new AppError("Post not found", 404);
+      }
+
+      return {
+        liked: false,
+        like_count: updatedPost.like_count,
+      };
+    };
+
+
+
+//todo==========> Delete Post 
+
+export const deletePost = async (
   userId: string,
   postId: string
 ) => {
-  const deletedLike = await Like.findOneAndDelete({
-    user_id: userId,
-    post_id: postId,
-  });
+  const post = await Post.findById(postId)
+    .select("author_id")
+    .lean();
 
-  if (!deletedLike) {
-    throw new AppError("Post not liked", 404);
-  }
-
-  const updatedPost = await Post.findByIdAndUpdate(
-    postId,
-    { $inc: { like_count: -1 } },
-    {
-      new: true,
-      select: "like_count",
-    }
-  );
-
-  if (!updatedPost) {
+  if (!post) {
     throw new AppError("Post not found", 404);
   }
 
+  if (post.author_id !== userId) {
+    throw new AppError(
+      "You are not allowed to delete this post",
+      403
+    );
+  }
+
+  // 1. Delete the post and recheck ownership atomically
+  const deletedPost = await Post.findOneAndDelete({
+    _id: post._id,
+    author_id: userId,
+  });
+
+  if (!deletedPost) {
+    throw new AppError("Post not found", 404);
+  }
+
+  // 2. Clean up related comments and likes
+  try {
+    const comments = await Comment.find({
+      post_id: post._id,
+    })
+      .select("_id")
+      .lean();
+
+    const commentIds = comments.map(
+      (comment) => comment._id
+    );
+
+    await Promise.all([
+      Like.deleteMany({
+        $or: [
+          { post_id: post._id },
+          { comment_id: { $in: commentIds } },
+        ],
+      }),
+
+      Comment.deleteMany({
+        post_id: post._id,
+      }),
+    ]);
+  } catch (error) {
+    console.error(
+      `Cleanup failed after deleting post ${postId}:`,
+      error
+    );
+  }
+
   return {
-    liked: false,
-    like_count: updatedPost.like_count,
+    id: deletedPost._id,
+    deleted: true,
   };
 };
+//!============== Comment ===========================
 
-// ========== Create Comment ==========
+//todo========> Create Comment 
 export const createComment = async (
   authorId: string,
   postId: string,
@@ -331,148 +453,190 @@ export const createComment = async (
   };
 };
 
-
-// ========== Get Comments ==========
-export const getComments = async (
-  postId: string,
-  limit: number,
-  cursor?: string
+//todo========> Like Comment 
+export const likeComment = async (
+  userId: string,
+  commentId: string
 ) => {
-  const post = await Post.findById(postId).select("_id");
+  const comment = await Comment.findById(commentId).select("_id");
 
-  if (!post) {
-    throw new AppError("Post not found", 404);
+  if (!comment) {
+    throw new AppError("Comment not found", 404);
   }
 
-  const decodedCursor = cursor ? decodeCursor(cursor) : null;
-
-  // Get top-level comments only
-  const rows = await Comment.find(
-    decodedCursor
-      ? {
-          post_id: postId,
-          parent_comment_id: null,
-          $or: [
-            {
-              created_at: {
-                $gt: decodedCursor.date,
-              },
-            },
-            {
-              created_at: decodedCursor.date,
-              _id: {
-                $gt: decodedCursor.id,
-              },
-            },
-          ],
-        }
-      : {
-          post_id: postId,
-          parent_comment_id: null,
-        }
-  )
-    .sort({
-      created_at: 1,
-      _id: 1,
-    })
-    .limit(limit + 1)
-    .lean();
-
-  const hasMore = rows.length > limit;
-
-  const topLevelComments = hasMore
-    ? rows.slice(0, limit)
-    : rows;
-
-  const topLevelIds = topLevelComments.map(
-    (comment) => comment._id
-  );
-
-  // Get replies for the current page of top-level comments
-  const replies = await Comment.find({
-    post_id: postId,
-    parent_comment_id: {
-      $in: topLevelIds,
-    },
-  })
-    .sort({
-      created_at: 1,
-      _id: 1,
-    })
-    .lean();
-
-  // Group replies by their parent comment
-  const repliesByParent = new Map<
-    string,
-    typeof replies
-  >();
-
-  for (const reply of replies) {
-    const key = String(reply.parent_comment_id);
-
-    if (!repliesByParent.has(key)) {
-      repliesByParent.set(key, []);
+  try {
+    await Like.create({
+      user_id: userId,
+      comment_id: comment._id,
+    });
+  } catch (error: unknown) {
+    if (isMongoDuplicateKeyError(error)) {
+      throw new AppError("Comment already liked", 409);
     }
 
-    repliesByParent.get(key)!.push(reply);
+    throw error;
   }
 
-  // Get authors for both comments and replies
-  const allComments = [
-    ...topLevelComments,
-    ...replies,
-  ];
-
-  const authorIds = [
-    ...new Set(
-      allComments.map((comment) => comment.author_id)
-    ),
-  ];
-
-  const authors = await prisma.user.findMany({
-    where: {
-      id: {
-        in: authorIds,
-      },
-    },
-    select: {
-      id: true,
-      fullName: true,
-      photoUrl: true,
-    },
-  });
-
-  const authorMap = new Map(
-    authors.map((author) => [author.id, author])
+  const updatedComment = await Comment.findByIdAndUpdate(
+    commentId,
+    { $inc: { like_count: 1 } },
+    {
+      new: true,
+      select: "like_count",
+    }
   );
 
-  const toItem = (
-    comment: (typeof allComments)[number]
-  ) => ({
-    id: comment._id,
-    post_id: comment.post_id,
-    author:
-      authorMap.get(comment.author_id) ?? null,
-    parent_comment_id: comment.parent_comment_id,
-    content: comment.content,
-    like_count: comment.like_count,
-    created_at: comment.created_at,
-  });
-
-  const lastTopLevel =
-    topLevelComments[topLevelComments.length - 1];
+  if (!updatedComment) {
+    throw new AppError("Comment not found", 404);
+  }
 
   return {
-    items: topLevelComments.map((comment) => ({
-      ...toItem(comment),
-      replies: (
-        repliesByParent.get(String(comment._id)) ?? []
-      ).map(toItem),
-    })),
-
-    next_cursor:
-      hasMore && lastTopLevel
-        ? encodeCursor(lastTopLevel)
-        : null,
+    liked: true,
+    like_count: updatedComment.like_count,
   };
 };
+
+//todo========> Unlike Comment 
+
+export const unlikeComment = async (
+  userId: string,
+  commentId: string
+) => {
+  const deletedLike = await Like.findOneAndDelete({
+    user_id: userId,
+    comment_id: commentId,
+  });
+
+  if (!deletedLike) {
+    throw new AppError("Comment not liked", 404);
+  }
+
+  const updatedComment = await Comment.findByIdAndUpdate(
+    commentId,
+    { $inc: { like_count: -1 } },
+    {
+      new: true,
+      select: "like_count",
+    }
+  );
+
+  if (!updatedComment) {
+    throw new AppError("Comment not found", 404);
+  }
+
+  return {
+    liked: false,
+    like_count: updatedComment.like_count,
+  };
+};
+
+
+//todo========> Get Comments 
+  export const getComments = async (
+    viewerId: string,
+    postId: string,
+    limit: number,
+    cursor?: string
+  ) => {
+    const post = await Post.findById(postId).select("_id");
+
+    if (!post) {
+      throw new AppError("Post not found", 404);
+    }
+
+    const decodedCursor = cursor ? decodeCursor(cursor) : null;
+
+    // Top-level comments only
+    const rows = await Comment.find(
+      decodedCursor
+        ? {
+            post_id: postId,
+            parent_comment_id: null,
+            $or: [
+              { created_at: { $gt: decodedCursor.date } },
+              { created_at: decodedCursor.date, _id: { $gt: decodedCursor.id } },
+            ],
+          }
+        : { post_id: postId, parent_comment_id: null }
+    )
+      .sort({ created_at: 1, _id: 1 })
+      .limit(limit + 1)
+      .lean();
+
+    const hasMore = rows.length > limit;
+    const topLevelComments = hasMore ? rows.slice(0, limit) : rows;
+    const topLevelIds = topLevelComments.map((comment) => comment._id);
+
+    // Replies for this page of top-level comments
+    const replies = await Comment.find({
+      post_id: postId,
+      parent_comment_id: { $in: topLevelIds },
+    })
+      .sort({ created_at: 1, _id: 1 })
+      .lean();
+
+    const repliesByParent = new Map<string, typeof replies>();
+
+    for (const reply of replies) {
+      const key = String(reply.parent_comment_id);
+
+      if (!repliesByParent.has(key)) {
+        repliesByParent.set(key, []);
+      }
+
+      repliesByParent.get(key)!.push(reply);
+    }
+
+    const allComments = [...topLevelComments, ...replies];
+    const allCommentIds = allComments.map((comment) => comment._id);
+
+    const authorIds = [
+      ...new Set(allComments.map((comment) => comment.author_id)),
+    ];
+
+    
+    const [authors, likedComments] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: authorIds } },
+        select: { id: true, fullName: true, photoUrl: true },
+      }),
+
+      allCommentIds.length
+        ? Like.find({
+            user_id: viewerId,
+            comment_id: { $in: allCommentIds },
+          })
+            .select("comment_id")
+            .lean()
+        : Promise.resolve([]),
+    ]);
+
+    const authorMap = new Map(authors.map((author) => [author.id, author]));
+
+    const likedCommentIds = new Set(
+      likedComments.map((like) => String(like.comment_id))
+    );
+
+    const toItem = (comment: (typeof allComments)[number]) => ({
+      id: comment._id,
+      post_id: comment.post_id,
+      author: authorMap.get(comment.author_id) ?? null,
+      parent_comment_id: comment.parent_comment_id,
+      content: comment.content,
+      like_count: comment.like_count,
+      liked_by_me: likedCommentIds.has(String(comment._id)),
+      created_at: comment.created_at,
+    });
+
+    const lastTopLevel = topLevelComments[topLevelComments.length - 1];
+
+    return {
+      items: topLevelComments.map((comment) => ({
+        ...toItem(comment),
+        replies: (repliesByParent.get(String(comment._id)) ?? []).map(toItem),
+      })),
+
+      next_cursor:
+        hasMore && lastTopLevel ? encodeCursor(lastTopLevel) : null,
+    };
+  };

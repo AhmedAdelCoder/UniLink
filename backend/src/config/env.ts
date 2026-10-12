@@ -9,7 +9,7 @@ interface Env {
   mongodbUri: string;
 
   // JWT
-  jwtSecret: string | undefined;
+  jwtSecret: string;
   jwtAccessExpiresIn: string;
   jwtRefreshExpiresIn: number;
 
@@ -49,7 +49,7 @@ const env: Env = {
   mongodbUri: getRequired('MONGODB_URI'),
 
   // JWT
-  jwtSecret: process.env.JWT_SECRET,
+  jwtSecret: getRequired('JWT_SECRET'),
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
   jwtRefreshExpiresIn: Number(process.env.JWT_REFRESH_EXPIRES_IN) || 7,
 

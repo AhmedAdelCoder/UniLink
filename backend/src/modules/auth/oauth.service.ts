@@ -35,12 +35,24 @@ export interface OAuthLoginResult {
   refreshToken: string;
 }
 
+const GITHUB_HEADERS = {
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+  "User-Agent": "UniLink-Backend",
+};
+
 export class oAuthService {
 
     async googleLogin(idToken : string , role? : Role) : Promise<OAuthLoginResult>{
         const profile = await this.verifyGoogleIdToken(idToken) ;
         return this.oauthLogin(profile , role) ;
     }
+
+    async githubLogin(code : string , role? : Role) : Promise<OAuthLoginResult> {
+        const githubAccessToken = await this.exchangeGitHubCode(code) ;
+        const profile = await this.getGitHubProfile(githubAccessToken) ;
+        return this.oauthLogin(profile , role) ;
+    }   
 
     private async createAuthTokens( user : {id : string , role : Role}) {   
 
@@ -109,6 +121,110 @@ export class oAuthService {
             }
 
             throw new AppError("Invalid Google ID token" , 401) ;
+        }
+    }
+
+    private async exchangeGitHubCode(code : string) {
+        if(! env.githubClientId || ! env.githubClientSecret) {
+            throw new AppError("GitHub OAuth is not configured" , 500) ;
+        }
+
+        let response ;
+
+        try {
+            response = await fetch(
+                "https://github.com/login/oauth/access_token" ,
+                {
+                method : "POST" ,
+                headers : {
+                Accept : "application/json" ,
+                "Content-Type" : "application/json",
+                'User-Agent' : GITHUB_HEADERS["User-Agent"]
+                } ,
+                body : JSON.stringify({
+                client_id : env.githubClientId ,
+                client_secret : env.githubClientSecret ,
+                code                                                                                                                       
+                })
+                }
+            )
+        }
+        catch{
+            throw new AppError("Could not reach GitHub", 502);
+        }
+
+
+        if(!response.ok) {
+            throw new AppError("Failed to exchange GitHub authorization code", 401);
+        }
+
+        const data = (await response.json()) as {
+            access_token?: string;
+            error?: string;
+        }
+
+        if(!data.access_token) {
+            throw new AppError("Invalid GitHub authorization code", 401);
+        }
+
+        return data.access_token ;
+    }
+
+    private async getGitHubProfile(githubAccessToken : string) {
+
+        const headers = {
+            ...GITHUB_HEADERS , Authorization: `Bearer ${githubAccessToken}`,
+        }
+        
+        const [userRes , emailRes] = await Promise.all([
+            fetch("https://api.github.com/user" ,{headers}) ,
+            fetch("https://api.github.com/user/emails" , {headers})
+        ]).catch(() =>{
+            throw new AppError("Could not reach GitHub", 502) ;
+        });
+
+
+
+        if(!userRes.ok) {
+            throw new AppError("Failed to fetch GitHub user profile" , 401) ;
+        }
+
+        if(!emailRes.ok){
+            throw new AppError("Failed to fetch GitHub emails" , 401) ;
+        }
+
+        const profile = (await userRes.json()) as {
+            id : number ,
+            login : string ,
+            name : string | null ,
+            email : string | null
+        }
+
+        const emails = (await emailRes.json()) as {
+            email : string ,
+            primary : boolean ,
+            verified : boolean
+        }[] ;
+
+        if(!profile.id) {
+            throw new AppError("GitHub account ID is missing" , 401) ;
+        }
+
+        const verifiedEmail = emails.find(
+            (item) => item.primary && item.verified
+        );
+
+        if(!verifiedEmail) {
+            throw new AppError("No verified primary email found in GitHub account" , 400) ;
+        }
+
+        const email = verifiedEmail.email ;
+
+        return {
+            provider : OAuthProvider.github ,
+            providerAccountId : String(profile.id ),
+            email ,
+            fullName : profile.name || profile.login 
         }
     }
 

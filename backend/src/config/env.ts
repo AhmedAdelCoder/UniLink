@@ -15,6 +15,8 @@ interface Env {
 
   // OAuth
   googleClientId: string | undefined;
+  githubClientId: string | undefined;
+  githubClientSecret: string | undefined;
 
   // OTP
   otpSecret: string;
@@ -55,6 +57,8 @@ const env: Env = {
 
   // OAuth
   googleClientId: process.env.GOOGLE_CLIENT_ID,
+  githubClientId: process.env.GITHUB_CLIENT_ID,
+  githubClientSecret: process.env.GITHUB_CLIENT_SECRET,
 
   // OTP
   otpSecret: getRequired('OTP_SECRET'),

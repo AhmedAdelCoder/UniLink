@@ -1,4 +1,5 @@
-﻿import dotenv from 'dotenv';
+import dotenv from 'dotenv';
+import { parseBoundedInt } from './parseBoundedInt.js';
 
 dotenv.config();
 
@@ -25,6 +26,13 @@ interface Env {
   smtpUser: string | undefined;
   smtpPass: string | undefined;
   mailFrom: string | undefined;
+
+  // Cleanup Recovery Worker
+  cleanupWorkerIntervalMs: number;
+  cleanupWorkerBatchSize: number;
+  cleanupWorkerCommentBatchSize: number;
+  cleanupWorkerLeaseMs: number;
+  cleanupWorkerMaxAttempts: number;
 
   isProd: boolean;
 }
@@ -65,6 +73,18 @@ const env: Env = {
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
   mailFrom: process.env.MAIL_FROM,
+
+  // Cleanup Recovery Worker (Defaults: 30s interval, 10 posts/batch, 500 comments/chunk, 2m lease, 5 attempts)
+  cleanupWorkerIntervalMs: parseBoundedInt('CLEANUP_WORKER_INTERVAL_MS', 30_000, 1_000, 3_600_000),
+  cleanupWorkerBatchSize: parseBoundedInt('CLEANUP_WORKER_BATCH_SIZE', 10, 1, 100),
+  cleanupWorkerCommentBatchSize: parseBoundedInt(
+    'CLEANUP_WORKER_COMMENT_BATCH_SIZE',
+    500,
+    1,
+    5_000
+  ),
+  cleanupWorkerLeaseMs: parseBoundedInt('CLEANUP_WORKER_LEASE_MS', 120_000, 1_000, 1_800_000),
+  cleanupWorkerMaxAttempts: parseBoundedInt('CLEANUP_WORKER_MAX_ATTEMPTS', 5, 1, 50),
 
   isProd: process.env.NODE_ENV === 'production',
 };

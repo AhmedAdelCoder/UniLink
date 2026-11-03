@@ -34,6 +34,7 @@ const commentSchema = new Schema<IComment>(
     like_count: {
       type: Number,
       default: 0,
+      min: 0,
     },
   },
   {

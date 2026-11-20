@@ -1,0 +1,114 @@
+{
+  "info": {
+    "_postman_id": "a7a8f42c-bd5c-4de3-96cf-cf701e44b427",
+    "name": "UniLink Chat API",
+    "description": "Chat REST endpoints. Set baseUrl to the API origin and token to a valid access token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Create or get chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"22222222-2222-4222-8222-222222222222\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat"]
+        }
+      }
+    },
+    {
+      "name": "List chats",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat?limit=30",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat"],
+          "query": [{ "key": "limit", "value": "30" }]
+        }
+      }
+    },
+    {
+      "name": "Get chat details",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat/{{chatId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat", "{{chatId}}"]
+        }
+      }
+    },
+    {
+      "name": "List chat messages",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat/{{chatId}}/messages?limit=30",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat", "{{chatId}}", "messages"],
+          "query": [{ "key": "limit", "value": "30" }]
+        }
+      }
+    },
+    {
+      "name": "Send chat message",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"clientMessageId\": \"postman-example-1\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat/{{chatId}}/messages",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat", "{{chatId}}", "messages"]
+        }
+      }
+    },
+    {
+      "name": "Mark chat as read",
+      "request": {
+        "method": "PATCH",
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/chat/{{chatId}}/read",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "chat", "{{chatId}}", "read"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "chatId", "value": "", "type": "string" }
+  ]
+}

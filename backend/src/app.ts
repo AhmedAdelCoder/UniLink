@@ -1,3 +1,4 @@
+
 import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -8,6 +9,7 @@ import feedRoutes from "./modules/feed/feed.route.js";
 import jobRouter from "./modules/job/job.route.js";
 import applicationRouter from "./modules/application/application.route.js";
 import jobApplicationRouter from "./modules/application/job-application.route.js";
+import chatRoutes from "./modules/chat/routes/chat.routes.js";
 
 const app = express();
 
@@ -31,21 +33,24 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
   });
 });
 
-//! ===== feauther ====
+// Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/feed", feedRoutes);
+
+// Job Routes
 app.use("/api/v1/jobs", jobRouter);
-app.use("/api/v1/jobs/:jobId/applications" , jobApplicationRouter);
-app.use("/api/v1/applications" , applicationRouter);
+app.use("/api/v1/jobs/:jobId/applications", jobApplicationRouter);
+app.use("/api/v1/applications", applicationRouter);
 
+// Chat Routes
+app.use("/api/v1/chat", chatRoutes);
 
-//errorMiddleware
+// 404 Handler
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
+// Error Middleware
 app.use(errorMiddleware);
-
-
 
 export default app;

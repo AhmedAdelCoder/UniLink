@@ -66,4 +66,23 @@ likeSchema.index(
   }
 );
 
+// Direct indexes on post_id and comment_id for efficient cleanup
+likeSchema.index(
+  { post_id: 1 },
+  {
+    partialFilterExpression: {
+      post_id: { $type: 'objectId' },
+    },
+  }
+);
+
+likeSchema.index(
+  { comment_id: 1 },
+  {
+    partialFilterExpression: {
+      comment_id: { $type: 'objectId' },
+    },
+  }
+);
+
 export default mongoose.model<ILike>('Like', likeSchema);

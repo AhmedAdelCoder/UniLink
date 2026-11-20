@@ -1,27 +1,19 @@
-import jwt from "jsonwebtoken";
+
 import type { Request, Response, NextFunction } from "express";
-import { Role } from "@prisma/client";
-import env from "../config/env.js";
+import type { Role } from "@prisma/client";
 import { AppError } from "../utils/AppError.js";
+import { getActiveAuthUser } from "../utils/authUser.js";
+import type { ActiveAuthUser } from "../utils/authUser.js";
+import {
+  verifyTokenPayload,
+  type AuthTokenPayload,
+} from "../utils/jwt.js";
 
-export interface AuthTokenPayload {
-  userId: string;
-  role: Role;
-}
-
-const isAuthTokenPayload = (value: unknown): value is AuthTokenPayload => {
-  if (typeof value !== "object" || value === null) return false;
-
-  const { userId, role } = value as Record<string, unknown>;
-
-  return (
-    typeof userId === "string" &&
-    Object.values(Role).includes(role as Role)
-  );
-};
+// Keep existing imports working
+export type { AuthTokenPayload };
 
 export const authMiddleware = (roles: Role[] = []) => {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
@@ -34,28 +26,32 @@ export const authMiddleware = (roles: Role[] = []) => {
       return next(new AppError("Unauthorized", 401));
     }
 
-    let payload: unknown;
+    let payload: AuthTokenPayload;
 
     try {
-      payload = jwt.verify(token, env.jwtSecret, { algorithms: ["HS256"] });
+      payload = verifyTokenPayload(token);
     } catch (error) {
-     
-      if (error instanceof jwt.TokenExpiredError) {
-        return next(new AppError("Token expired", 401));
+      next(error);
+      return;
+    }
+
+    let user: ActiveAuthUser | null;
+    try {
+      user = await getActiveAuthUser(payload.userId);
+      if (!user) {
+        next(new AppError("Unauthorized", 401));
+        return;
       }
-
-      return next(new AppError("Invalid token", 401));
+    } catch (error) {
+      next(error);
+      return;
     }
 
-    if (!isAuthTokenPayload(payload)) {
-      return next(new AppError("Invalid token payload", 401));
-    }
-
-    if (roles.length > 0 && !roles.includes(payload.role)) {
+    if (roles.length > 0 && !roles.includes(user.role)) {
       return next(new AppError("Forbidden", 403));
     }
 
-    req.user = { userId: payload.userId, role: payload.role };
+    req.user = { userId: user.id, role: user.role };
 
     next();
   };

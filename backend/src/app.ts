@@ -5,6 +5,7 @@ import morgan from "morgan";
 import { errorMiddleware } from "./middlewares/errorMiddleware.js";
 import authRoutes from "./modules/auth/auth.route.js";
 import feedRoutes from "./modules/feed/feed.route.js";
+import chatRoutes from "./modules/chat/routes/chat.routes.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get("/api/v1/health", (_req: Request, res: Response) => {
 //! ===== feauther ====
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/feed", feedRoutes);
+app.use("/api/v1/chat", chatRoutes);
 
 
 //errorMiddleware

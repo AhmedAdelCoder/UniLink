@@ -220,7 +220,7 @@ export const updatePost = async (
       $set: input,
     },
     {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }
   ).lean();
@@ -288,7 +288,7 @@ export const likePost = async (
         { _id: postId, deleted_at: null },
         { $inc: { like_count: 1 } },
         {
-          new: true,
+          returnDocument: "after",
           select: "like_count",
         }
       );
@@ -349,7 +349,7 @@ export const unlikePost = async (
         },
       ],
       {
-        new: true,
+        returnDocument: "after",
         select: "like_count",
       }
     );
@@ -477,7 +477,7 @@ export const deletePost = async (
       },
     },
     {
-      new: true,
+      returnDocument: "after",
     }
   );
 
@@ -603,7 +603,7 @@ export const createComment = async (
       const postUpdateQuery = Post.findOneAndUpdate(
         { _id: postId, deleted_at: null },
         { $inc: { comment_count: 1 } },
-        { new: true, select: "_id" }
+        { returnDocument: "after", select: "_id" }
       );
       if (session) postUpdateQuery.session(session);
       updatedPost = await postUpdateQuery;
@@ -681,7 +681,7 @@ export const likeComment = async (
         commentId,
         { $inc: { like_count: 1 } },
         {
-          new: true,
+           returnDocument: "after" ,
           select: "like_count",
         }
       );
@@ -740,7 +740,7 @@ export const unlikeComment = async (
         },
       ],
       {
-        new: true,
+       returnDocument: "after" ,
         select: "like_count",
       }
     );

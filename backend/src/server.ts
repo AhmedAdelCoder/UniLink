@@ -8,6 +8,9 @@ import connectMongoDB from "./config/mongodb.js";
 import prisma from "./config/postgres.js";
 import { verifyTokenPayload } from "./utils/jwt.js";
 import { startCleanupWorker, stopCleanupWorker } from "./modules/feed/cleanup.worker.js";
+import Chat from "./modules/chat/models/Chat.js";
+import Message from "./modules/chat/models/Message.js";
+
 
 const httpServer = createServer(app);
 
@@ -93,6 +96,16 @@ const startServer = async (): Promise<void> => {
 
     await connectMongoDB();
 
+      await Promise.all([
+    Chat.init(),
+    Message.init(),
+   ]);
+
+  //console.log("Chat indexes:", await Chat.collection.indexes());
+  //console.log("Message indexes:", await Message.collection.indexes());
+
+  //console.log("Chat indexes initialized successfully");
+
     // Start background post cleanup recovery worker after MongoDB connects
     startCleanupWorker({
       intervalMs: env.cleanupWorkerIntervalMs,
@@ -102,10 +115,9 @@ const startServer = async (): Promise<void> => {
       maxAttempts: env.cleanupWorkerMaxAttempts,
     });
 
-    httpServer.listen(env.port, () => {
+    httpServer.listen(env.port, "0.0.0.0", () => {
       console.log(`UniLink Backend running on port ${env.port}`);
     });
-
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
   } catch (error) {

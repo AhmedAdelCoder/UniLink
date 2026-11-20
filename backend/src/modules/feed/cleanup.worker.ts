@@ -196,7 +196,7 @@ export const reapExpiredOverLimitClaims = async (
             'Exceeded maximum cleanup attempts after an expired lease',
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!updated) break;
@@ -245,7 +245,7 @@ export const claimPostForCleanup = async (
   };
 
   const claimedPost = await Post.findOneAndUpdate(filter, update, {
-    new: true,
+    returnDocument: "after",
   });
 
   return claimedPost as PostDocument | null;
@@ -264,7 +264,7 @@ export const renewCleanupLease = async (
         'cleanup_state.lease_expires_at': new Date(Date.now() + leaseDurationMs),
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   return renewed != null;
@@ -302,7 +302,7 @@ const persistOwnedCleanupFailure = async (
         'cleanup_state.next_retry_at': nextRetryAt,
       },
     },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   if (!updated) {

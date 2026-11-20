@@ -1,7 +1,9 @@
 
 import type { Request, Response, NextFunction } from "express";
-import { Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import { AppError } from "../utils/AppError.js";
+import { getActiveAuthUser } from "../utils/authUser.js";
+import type { ActiveAuthUser } from "../utils/authUser.js";
 import {
   verifyTokenPayload,
   type AuthTokenPayload,
@@ -11,7 +13,7 @@ import {
 export type { AuthTokenPayload };
 
 export const authMiddleware = (roles: Role[] = []) => {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith("Bearer ")) {
@@ -29,14 +31,27 @@ export const authMiddleware = (roles: Role[] = []) => {
     try {
       payload = verifyTokenPayload(token);
     } catch (error) {
-      return next(error);
+      next(error);
+      return;
     }
 
-    if (roles.length > 0 && !roles.includes(payload.role)) {
+    let user: ActiveAuthUser | null;
+    try {
+      user = await getActiveAuthUser(payload.userId);
+      if (!user) {
+        next(new AppError("Unauthorized", 401));
+        return;
+      }
+    } catch (error) {
+      next(error);
+      return;
+    }
+
+    if (roles.length > 0 && !roles.includes(user.role)) {
       return next(new AppError("Forbidden", 403));
     }
 
-    req.user = { userId: payload.userId, role: payload.role };
+    req.user = { userId: user.id, role: user.role };
 
     next();
   };

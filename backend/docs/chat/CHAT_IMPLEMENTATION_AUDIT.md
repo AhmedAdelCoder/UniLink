@@ -923,7 +923,7 @@ sequenceDiagram
 ### Phase 3: Core Service Layer
 - [ ] Implement `areUsersConnected` check against Prisma.
 - [ ] Implement `getOrCreateChat` service logic.
-- [ ] Implement `getUserChats` with PostgreSQL user hydration and pagination.
+- [ ] Implement `getUserChats` with PostgreSQL user hydration and pagination. *(Deferred from Chat Data Layer Phase 1; implement with the future Chat Core Service when the Chat API is implemented.)*
 - [ ] Implement `getChatMessages` with deterministic cursor pagination.
 - [ ] Implement `sendMessage` with conditional atomic `Chat` update.
 - [ ] Implement `markMessagesAsRead`.

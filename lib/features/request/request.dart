@@ -1,5 +1,7 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 Future<void> sendWelcomeEmail(String email, String name) async {
   try {
@@ -15,11 +17,11 @@ Future<void> sendWelcomeEmail(String email, String name) async {
     );
 
     if (response.statusCode == 200) {
-      print("Welcome email sent!");
+      debugPrint("Welcome email sent!");
     } else {
-      print("Failed to send email: ${response.body}");
+      debugPrint("Failed to send email: ${response.body}");
     }
   } catch (e) {
-    print("Error sending email: $e");
+    debugPrint("Error sending email: $e");
   }
 }

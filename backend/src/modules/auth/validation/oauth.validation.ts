@@ -5,6 +5,11 @@ export const googleLoginSchema = z.object({
     role: z.enum(["student", "recruiter"]).optional()
 });
 
+export const githubLoginSchema = z.object({
+  code: z.string().min(1, "code is required"),
+  role: z.enum(["student", "recruiter"]).optional(), 
+});
+
 export const verifyEmailSchema = z.object({
   email: z.string().email(),
   code: z.string().regex(/^\d{6}$/, "Code must be 6 digits"),

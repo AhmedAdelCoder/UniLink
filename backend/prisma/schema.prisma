@@ -194,7 +194,7 @@ model Application {
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
 
-  job     Job  @relation(fields: [jobId], references: [id])
+  job     Job  @relation(fields: [jobId], references: [id] , onDelete: Cascade)
   student User @relation(fields: [studentId], references: [id])
 
   @@unique([jobId, studentId])

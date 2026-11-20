@@ -8,6 +8,7 @@ import {
 } from "./validation/auth.validation.js";
 
 import {
+  githubLoginSchema,
   googleLoginSchema,
   resendOtpSchema,
   verifyEmailSchema,
@@ -24,7 +25,7 @@ import {
   verifyEmail,
 } from "./auth.controller.js";
 
-import { googleLogin } from "./Oauth.controller.js";
+import { githubLogin, googleLogin } from "./Oauth.controller.js";
 import { Router } from "express";
 import { authLimiter } from "../../middlewares/rateLimiter.js";
 import { validate } from "../../middlewares/validation.js";
@@ -40,6 +41,7 @@ authRoutes.post('/refresh' , authLimiter , validate(refreshAccessTokenSchema) , 
 authRoutes.post('/logout' , authLimiter , validate(logoutSchema) , logout) ;
 
 authRoutes.post('/google' , authLimiter , validate(googleLoginSchema) , googleLogin) ;
+authRoutes.post('/github' , authLimiter , validate(githubLoginSchema) , githubLogin) ;
 
 authRoutes.post('/forgot-password' , authLimiter , validate(forgotPasswordSchema) , forgetPassword) ;
 authRoutes.post('/reset-password' , authLimiter , validate(resetPasswordSchema) , resetPassword) ;

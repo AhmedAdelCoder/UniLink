@@ -18,3 +18,17 @@ export const googleLogin = asyncHandler(
         });
     }
 )
+
+export const githubLogin = asyncHandler(
+    async(req : Request , res : Response) => {
+        const {code , role} = req.body;
+
+        const result = await oauth.githubLogin(code , role) ;
+
+        res.status(200).json({
+            success : true ,
+            msg : "Login with GitHub successfully" ,
+            data : result
+        });
+    }
+)

@@ -18,8 +18,8 @@ const appError = (statusCode: number, message: string) => (error: unknown) =>
 
 describe("Chat details and read service with real MongoDB", () => {
   let server: MongoMemoryServer;
-  const originals = { findFirst: prisma.connection.findFirst, findMany: prisma.user.findMany };
-  let connected: boolean;
+  const originals = { findFirst: prisma.connection.findFirst, connectionFindMany: prisma.connection.findMany, userFindMany: prisma.user.findMany };
+  let connections: Array<{ requesterId: string; receiverId: string; status: string }>;
   let users: Array<Record<string, unknown>>;
   let connectionCalls: unknown[];
   let userCalls: unknown[];
@@ -33,24 +33,38 @@ describe("Chat details and read service with real MongoDB", () => {
     await Promise.all([Chat.init(), Message.init()]);
     (prisma.connection as any).findFirst = async (...args: unknown[]) => {
       connectionCalls.push(args[0]);
-      return connected ? { id: "accepted" } : null;
+      const query = args[0] as any;
+      const row = connections.find((item) => item.status === query.where.status && query.where.OR.some((clause: any) =>
+        Object.entries(clause).every(([key, value]) => (item as any)[key] === value)));
+      return row ? { id: "connection", status: row.status } : null;
+    };
+    (prisma.connection as any).findMany = async (...args: unknown[]) => {
+      const query = args[0] as any;
+      return connections.filter((item) => item.status === query.where.status && query.where.OR.some((clause: any) =>
+        Object.entries(clause).every(([key, value]) => (item as any)[key] === value)))
+        .map(({ requesterId, receiverId }) => ({ requesterId, receiverId }));
     };
     (prisma.user as any).findMany = async (...args: unknown[]) => {
       userCalls.push(args[0]);
-      const query = args[0] as { where: { id: { in: string[] } } };
-      return users.filter((user) => query.where.id.in.includes(String(user.id)));
+      const query = args[0] as { where: { id: { in: string[] }; deletedAt?: null } };
+      return users.filter((user) => query.where.id.in.includes(String(user.id)) && (query.where.deletedAt === null ? user.deletedAt == null : true));
     };
   });
   beforeEach(async () => {
     await Promise.all([Chat.deleteMany({}), Message.deleteMany({})]);
-    connected = true;
-    users = [{ id: alice, fullName: "Alice" }, { id: bob, fullName: "Bob" }, { id: carol, fullName: "Carol" }];
+    connections = [{ requesterId: alice, receiverId: bob, status: "accepted" }];
+    users = [
+      { id: alice, fullName: "Alice", isOnline: false, lastSeen: null, deletedAt: null },
+      { id: bob, fullName: "Bob", isOnline: true, lastSeen: null, deletedAt: null },
+      { id: carol, fullName: "Carol", isOnline: false, lastSeen: null, deletedAt: null },
+    ];
     connectionCalls = [];
     userCalls = [];
   });
   after(async () => {
     (prisma.connection as any).findFirst = originals.findFirst;
-    (prisma.user as any).findMany = originals.findMany;
+    (prisma.connection as any).findMany = originals.connectionFindMany;
+    (prisma.user as any).findMany = originals.userFindMany;
     await mongoose.disconnect();
     await server?.stop();
   });
@@ -70,6 +84,34 @@ describe("Chat details and read service with real MongoDB", () => {
       assert.equal(connectionCalls.length, 1);
     }
   });
+  it("includes accepted-contact presence with online-null and offline lastSeen values", async () => {
+    const chat = await makeChat();
+    users.find((user) => user.id === bob)!.isOnline = true;
+    users.find((user) => user.id === bob)!.lastSeen = new Date("2026-03-04T05:06:07.000Z");
+    const online = await getChatDetails(alice, String(chat._id));
+    assert.equal(online.otherUser.isOnline, true);
+    assert.equal(online.otherUser.lastSeen, null);
+    users.find((user) => user.id === bob)!.isOnline = false;
+    const offlineSeen = new Date("2026-03-05T06:07:08.000Z");
+    users.find((user) => user.id === bob)!.lastSeen = offlineSeen;
+    const offline = await getChatDetails(alice, String(chat._id));
+    assert.equal(offline.otherUser.isOnline, false);
+    assert.equal(offline.otherUser.lastSeen, offlineSeen);
+  });
+
+  it("hides both presence keys for pending, rejected, removed, and missing connections while keeping chat readable", async () => {
+    const chat = await makeChat();
+    await Message.create({ chat_id: chat._id, sender_id: bob, content: "readable after lapse" });
+    for (const status of ["pending", "rejected", "removed", null]) {
+      connections = status === null ? [] : [{ requesterId: alice, receiverId: bob, status }];
+      const details = await getChatDetails(alice, String(chat._id));
+      assert.equal("isOnline" in details.otherUser, false, String(status));
+      assert.equal("lastSeen" in details.otherUser, false, String(status));
+      assert.equal(details.canSend, false, String(status));
+      assert.equal((await getMessages(alice, String(chat._id))).messages[0].content, "readable after lapse");
+    }
+  });
+
   it("normalizes the participant ID and passes cleaned IDs to the connection repository", async () => {
     const chat = await makeChat();
     await getChatDetails(` ${alice.toUpperCase()} `, String(chat._id));
@@ -83,7 +125,7 @@ describe("Chat details and read service with real MongoDB", () => {
   it("disables sending after connection removal but keeps message reads available", async () => {
     const chat = await makeChat();
     await Message.create({ chat_id: chat._id, sender_id: bob, content: "still readable" });
-    connected = false;
+    connections = [{ requesterId: alice, receiverId: bob, status: "removed" }];
     const details = await getChatDetails(alice, String(chat._id));
     assert.equal(details.canSend, false);
     assert.equal((await getMessages(alice, String(chat._id))).messages[0].content, "still readable");

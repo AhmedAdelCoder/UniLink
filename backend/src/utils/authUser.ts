@@ -19,3 +19,19 @@ export const getActiveAuthUser = async (userId: string): Promise<ActiveAuthUser 
   if (!user || user.deletedAt) return null;
   return { id: user.id, role: user.role };
 };
+
+/**
+ * Returns the IDs (from the given list) that belong to active users, in one query.
+ * Used by the socket session sweeper instead of one lookup per connected user.
+ */
+export const getActiveUserIds = async (userIds: string[]): Promise<Set<string>> => {
+  const valid = userIds.filter(isUuid);
+  if (valid.length === 0) return new Set();
+
+  const rows = await prisma.user.findMany({
+    where: { id: { in: valid }, deletedAt: null },
+    select: { id: true },
+  });
+
+  return new Set(rows.map((row) => row.id));
+};

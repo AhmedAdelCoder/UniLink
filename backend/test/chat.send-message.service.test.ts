@@ -20,8 +20,11 @@ const appError = (statusCode: number, message: string) => (error: unknown) =>
 describe("Send message service with real MongoDB", () => {
   let server: MongoMemoryServer;
   const originalFindFirst = prisma.connection.findFirst;
+  const originalUserFindMany = prisma.user.findMany;
   let connected: boolean;
   let connectionCalls: unknown[];
+  let missingUserIds = new Set<string>();
+  let softDeletedUserIds = new Set<string>();
 
   before(async () => {
     server = await MongoMemoryServer.create({
@@ -34,14 +37,19 @@ describe("Send message service with real MongoDB", () => {
       connectionCalls.push(args[0]);
       return connected ? { id: "accepted" } : null;
     };
+    (prisma.user as any).findMany = async (args: any) =>
+      args.where.id.in.filter((id: string) => !missingUserIds.has(id) && !softDeletedUserIds.has(id)).map((id: string) => ({ id }));
   });
   beforeEach(async () => {
     await Promise.all([Chat.deleteMany({}), Message.deleteMany({})]);
     connected = true;
     connectionCalls = [];
+    missingUserIds = new Set();
+    softDeletedUserIds = new Set();
   });
   after(async () => {
     (prisma.connection as any).findFirst = originalFindFirst;
+    (prisma.user as any).findMany = originalUserFindMany;
     await mongoose.disconnect();
     await server?.stop();
   });
@@ -116,6 +124,18 @@ describe("Send message service with real MongoDB", () => {
     const stored = await Chat.findById(chat._id).lean();
     assert.equal(stored?.last_message, null);
     assert.equal(stored?.last_message_at, null);
+  });
+  it("rejects missing or soft-deleted recipients before querying connection state", async () => {
+    const chat = await makeChat();
+    for (const inactiveUsers of [missingUserIds, softDeletedUserIds]) {
+      inactiveUsers.add(bob);
+      await assert.rejects(sendMessage(alice, String(chat._id), { content: "must not send" }), appError(403, "You can only message your accepted connections"));
+      inactiveUsers.delete(bob);
+    }
+    assert.equal(connectionCalls.length, 0);
+    assert.equal(await Message.countDocuments(), 0);
+    const stored = await Chat.findById(chat._id).lean();
+    assert.equal(stored?.last_message, null);
   });
   it("rejects invalid content before checking connection and enforces the 2000-unit limit", async () => {
     const chat = await makeChat();
@@ -202,8 +222,8 @@ describe("Send message service with real MongoDB", () => {
   });
   it("always uses the authenticated sender and permits the same client ID for different senders", async () => {
     const chat = await makeChat();
-    const first = await sendMessage(alice, String(chat._id), { content: "from alice", clientMessageId: "shared", senderId: bob });
-    const second = await sendMessage(bob, String(chat._id), { content: "from bob", clientMessageId: "shared", senderId: alice });
+    const first = await sendMessage(alice, String(chat._id), { content: "from alice", clientMessageId: "shared" });
+    const second = await sendMessage(bob, String(chat._id), { content: "from bob", clientMessageId: "shared" });
     assert.equal(first.message.senderId, alice);
     assert.equal(second.message.senderId, bob);
     assert.equal(await Message.countDocuments(), 2);

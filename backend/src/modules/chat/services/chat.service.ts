@@ -1,6 +1,9 @@
 import { AppError } from "../../../utils/AppError.js"; // adjust to your error class
 import { cleanId, isUuid } from "../utils/ids.js";
-import { areUsersConnected } from "../repositories/connection.repository.js";
+import {
+  areUsersConnected,
+  getAcceptedContactIds,
+} from "../repositories/connection.repository.js";
 import { getUsersByIds } from "../repositories/user.repository.js";
 import {
   createChat,
@@ -15,7 +18,7 @@ import {
 } from "../repositories/chat.repository.js";
 import { Types } from "mongoose";
 import type { IMessage } from "../models/Message.js";
-import { toChatDto } from "./chat.mapper.js";
+import { applyPresenceVisibility, toChatDto } from "./chat.mapper.js";
 
 /**
  * Open a chat with another user, or return the existing one.
@@ -41,7 +44,8 @@ export const createOrGetChat = async (currentUserId: string, otherUserId: string
   const chat = await createChat(me, other);
   if (!chat) throw new AppError("Could not create the chat", 500);
 
-  return { chat, otherUser };
+  // The connection was just verified as accepted, so presence is visible here.
+  return { chat, otherUser: applyPresenceVisibility(otherUser, true) };
 };
 
 //todo ===  Chat list for the current user: other participant, last message, unread count ====
@@ -63,22 +67,29 @@ export const getMyChats = async (currentUserId: string, limit = DEFAULT_LIMIT) =
     c.user_1_id === me ? c.user_2_id : c.user_1_id;
 
   const otherIds = [...new Set(chats.map(otherIdOf))];
-  const [users, unread] = await Promise.all([
+  const [users, unread, contactIds] = await Promise.all([
     getUsersByIds(otherIds),
     getUnreadCounts(me, chats.map((c) => String(c._id))),
+    getAcceptedContactIds(me), // one query for the whole list, not one per chat
   ]);
   const userById = new Map(users.map((u) => [u.id, u]));
+  const contacts = new Set(contactIds);
 
   return chats.map((chat) => {
     const otherId = otherIdOf(chat);
     const user = userById.get(otherId);
 
     // Soft-deleted users are omitted by getUsersByIds, so show a placeholder.
-    return toChatDto(chat, user ?? { id: otherId, deleted: true as const }, {
-      unreadCount: unread.get(String(chat._id)) ?? 0,
-    });
+    // Presence (isOnline / lastSeen) is shown only for accepted contacts.
+    return toChatDto(
+      chat,
+      user
+        ? applyPresenceVisibility(user, contacts.has(otherId))
+        : { id: otherId, deleted: true as const },
+      { unreadCount: unread.get(String(chat._id)) ?? 0 }
+    );
   });
-}; 
+};
 
 //todo ====== Load a chat and make sure the user is one of its two participants ====
 
@@ -96,6 +107,13 @@ const getChatForParticipant = async (chatId: string, userId: string) => {
   return { chat, me };
 };
 
+export const assertChatParticipant = async (
+  userId: string,
+  chatId: string
+): Promise<void> => {
+  await getChatForParticipant(chatId, userId);
+};
+
 const toMessageDto = (m: IMessage & { _id: Types.ObjectId }) => ({
   id: String(m._id),
   chatId: String(m.chat_id),
@@ -106,6 +124,8 @@ const toMessageDto = (m: IMessage & { _id: Types.ObjectId }) => ({
   readAt: m.read_at,
   createdAt: m.created_at,
 });
+
+export type MessageDto = ReturnType<typeof toMessageDto>;
 
 /** Chat details for a participant. Reading stays allowed even when sending is not. */
 export const getChatDetails = async (userId: string, chatId: string) => {
@@ -119,7 +139,10 @@ export const getChatDetails = async (userId: string, chatId: string) => {
 
   return {
     chat,
-    otherUser: user ?? { id: otherId, deleted: true as const },
+    // Presence is hidden once the connection is gone (the chat stays readable).
+    otherUser: user
+      ? applyPresenceVisibility(user, connected)
+      : { id: otherId, deleted: true as const },
     // False for removed connections and deleted users: the chat becomes read-only.
     canSend: Boolean(user) && connected,
   };
@@ -187,7 +210,8 @@ export const sendMessage = async (
   }
 
   const recipientId = chat.user_1_id === me ? chat.user_2_id : chat.user_1_id;
-  if (!(await areUsersConnected(me, recipientId))) {
+  const [recipient] = await getUsersByIds([recipientId]);
+  if (!recipient || !(await areUsersConnected(me, recipientId))) {
     throw new AppError("You can only message your accepted connections", 403);
   }
 
@@ -206,4 +230,3 @@ export const sendMessage = async (
 
   return { message: toMessageDto(message), created, recipientId };
 };
-

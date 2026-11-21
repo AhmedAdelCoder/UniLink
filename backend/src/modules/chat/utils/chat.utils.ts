@@ -1,4 +1,4 @@
-import { AppError } from "../../utils/AppError.js";
+import { AppError } from "../../../utils/AppError.js";
 
 /** Same ordering as the Chat pre('validate') hook: smaller id is always user_1. */
 export const normalizeUserPair = (userA: string, userB: string): [string, string] => {

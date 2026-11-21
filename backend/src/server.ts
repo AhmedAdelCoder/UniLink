@@ -1,55 +1,21 @@
 import { createServer } from "node:http";
-import { Server } from "socket.io";
 import mongoose from "mongoose";
 
 import app from "./app.js";
 import env from "./config/env.js";
 import connectMongoDB from "./config/mongodb.js";
 import prisma from "./config/postgres.js";
-import { verifyTokenPayload } from "./utils/jwt.js";
 import { startCleanupWorker, stopCleanupWorker } from "./modules/feed/cleanup.worker.js";
 import Chat from "./modules/chat/models/Chat.js";
 import Message from "./modules/chat/models/Message.js";
+import { initSocket } from "./modules/chat/sockets/index.js";
+import { resetAllPresence } from "./modules/chat/repositories/presence.repository.js";
 
 
 const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*", // TODO: Restrict origins when web client is configured
-    methods: ["GET", "POST"],
-  },
-});
-
-// Authenticate Socket.IO connections using the shared JWT verifier.
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-
-  if (typeof token !== "string" || !token.trim()) {
-    return next(new Error("Unauthorized"));
-  }
-
-  try {
-    const payload = verifyTokenPayload(token);
-
-    socket.data.user = {
-      userId: payload.userId,
-      role: payload.role,
-    };
-
-    next();
-  } catch {
-    next(new Error("Unauthorized"));
-  }
-});
-
-io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.data.user.userId}`);
-
-  socket.on("disconnect", (reason) => {
-    console.log(`Socket disconnected: ${socket.data.user.userId}`, reason);
-  });
-});
+// Socket.IO setup (auth + chat handlers) lives in the chat module.
+const io = initSocket(httpServer);
 
 let shuttingDown = false;
 
@@ -96,15 +62,10 @@ const startServer = async (): Promise<void> => {
 
     await connectMongoDB();
 
-      await Promise.all([
-    Chat.init(),
-    Message.init(),
-   ]);
+    await resetAllPresence(); 
 
-  //console.log("Chat indexes:", await Chat.collection.indexes());
-  //console.log("Message indexes:", await Message.collection.indexes());
-
-  //console.log("Chat indexes initialized successfully");
+    // Build the unique indexes before accepting traffic.
+    await Promise.all([Chat.init(), Message.init()]);
 
     // Start background post cleanup recovery worker after MongoDB connects
     startCleanupWorker({

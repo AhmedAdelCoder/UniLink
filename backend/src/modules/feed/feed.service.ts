@@ -126,7 +126,11 @@ export const getFeed = async (
   ]);
 
   const authorMap = new Map(
-    authors.map((author) => [author.id, author])
+    authors.map((author) => [author.id, {
+      id: author.id,
+      fullName: author.fullName,
+      photoUrl: author.photoUrl,
+    }])
   );
 
   const likedSet = new Set(
@@ -190,7 +194,7 @@ export const createPost = async (
     comment_count: post.comment_count,
     created_at: post.created_at,
     liked_by_me: false,
-    author,
+    author: { id: author.id, fullName: author.fullName, photoUrl: author.photoUrl },
   };
 };
 
@@ -630,7 +634,7 @@ export const createComment = async (
       content: createdComment.content,
       like_count: createdComment.like_count,
       created_at: createdComment.created_at,
-      author,
+      author: { id: author.id, fullName: author.fullName, photoUrl: author.photoUrl },
     };
   }, options);
 };
@@ -838,7 +842,11 @@ export const getComments = async (
       : Promise.resolve([]),
   ]);
 
-  const authorMap = new Map(authors.map((author) => [author.id, author]));
+  const authorMap = new Map(authors.map((author) => [author.id, {
+    id: author.id,
+    fullName: author.fullName,
+    photoUrl: author.photoUrl,
+  }]));
 
   const likedCommentIds = new Set(
     likedComments.map((like) => String(like.comment_id))

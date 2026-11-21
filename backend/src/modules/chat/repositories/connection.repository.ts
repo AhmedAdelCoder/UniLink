@@ -40,3 +40,18 @@ export const areUsersConnected = async (userA: string, userB: string) => {
 
   return connection !== null;
 };
+
+// Accepted contacts in ONE query. A pair can exist twice (A->B and B->A), so IDs go through a Set.
+export const getAcceptedContactIds = async (userId: string): Promise<string[]> => {
+  const me = cleanId(userId);
+  if (!isUuid(me)) return [];
+
+  const rows = await prisma.connection.findMany({
+    where: { status: "accepted", OR: [{ requesterId: me }, { receiverId: me }] },
+    select: { requesterId: true, receiverId: true },
+  });
+
+  const ids = new Set<string>();
+  for (const row of rows) ids.add(row.requesterId === me ? row.receiverId : row.requesterId);
+  return [...ids];
+};

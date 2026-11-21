@@ -45,7 +45,8 @@ export class authService {
         const existing = await prisma.user.findUnique({
             where : {
                 email : data.email
-            }
+            },
+            select: { id: true, email: true, emailVerified: true },
         });
 
         if(existing?.emailVerified) {
@@ -94,7 +95,8 @@ export class authService {
 
     async verifyEmail(email : string , code : string) {
         const user = await prisma.user.findUnique({
-            where : {email}
+            where : {email},
+            select: { id: true, emailVerified: true },
         });
 
         if(!user || user.emailVerified) {
@@ -122,7 +124,8 @@ export class authService {
 
     async resendOtp(email : string) {
         const user = await prisma.user.findUnique({
-            where : {email}
+            where : {email},
+            select: { id: true, email: true, emailVerified: true },
         });
 
         if(!user || user.emailVerified) return ;
@@ -134,7 +137,11 @@ export class authService {
         const user = await prisma.user.findUnique({
             where : {
                 email : data.email
-            }
+            },
+            select: {
+                id: true, email: true, fullName: true, role: true,
+                passwordHash: true, emailVerified: true, deletedAt: true,
+            },
         });
 
         if(!user || !user.passwordHash) {
@@ -256,7 +263,8 @@ export class authService {
 
     async forgotPassword(email : string) {
         const user = await prisma.user.findUnique({
-            where : {email}
+            where : {email},
+            select: { id: true, email: true, emailVerified: true, deletedAt: true },
         });
 
         if(!user || !user.emailVerified || user.deletedAt) return ;
@@ -266,7 +274,8 @@ export class authService {
 
     async resetPassword(email : string , code : string , newpassword : string) {
         const user = await prisma.user.findUnique({
-            where : {email}
+            where : {email},
+            select: { id: true, emailVerified: true, deletedAt: true },
         });
 
         if(!user || !user.emailVerified || user.deletedAt) {

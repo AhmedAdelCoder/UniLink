@@ -14,10 +14,12 @@ const carol = "33333333-3333-4333-8333-333333333333";
 
 describe("Chat service with real MongoDB", () => {
   let server: MongoMemoryServer;
-  const originals = { findFirst: prisma.connection.findFirst, findMany: prisma.user.findMany };
+  const originals = { findFirst: prisma.connection.findFirst, findMany: prisma.user.findMany, connectionFindMany: prisma.connection.findMany };
   let connection: unknown;
+  let contactRows: Array<{ requesterId: string; receiverId: string; status: string }>;
   let users: Array<Record<string, unknown>>;
   let connectionCalls: unknown[];
+  let contactCalls: unknown[];
   let userCalls: unknown[];
 
   before(async () => {
@@ -31,25 +33,35 @@ describe("Chat service with real MongoDB", () => {
       connectionCalls.push(args[0]);
       return connection;
     };
+    (prisma.connection as any).findMany = async (...args: unknown[]) => {
+      contactCalls.push(args[0]);
+      const query = args[0] as any;
+      return contactRows.filter((row) => row.status === query.where.status && query.where.OR.some((clause: any) =>
+        Object.entries(clause).every(([key, value]) => (row as any)[key] === value)))
+        .map(({ requesterId, receiverId }) => ({ requesterId, receiverId }));
+    };
     (prisma.user as any).findMany = async (...args: unknown[]) => {
       userCalls.push(args[0]);
-      const query = args[0] as { where: { id: { in: string[] } } };
-      return users.filter((user) => query.where.id.in.includes(String(user.id)));
+      const query = args[0] as { where: { id: { in: string[] }; deletedAt?: null } };
+      return users.filter((user) => query.where.id.in.includes(String(user.id)) && (query.where.deletedAt === null ? user.deletedAt == null : true));
     };
   });
   beforeEach(async () => {
     await Promise.all([Chat.deleteMany({}), Message.deleteMany({})]);
     connection = { id: "connection" };
+    contactRows = [{ requesterId: me, receiverId: bob, status: "accepted" }, { requesterId: me, receiverId: carol, status: "accepted" }];
     users = [
-      { id: me, fullName: "Me" },
-      { id: bob, fullName: "Bob" },
-      { id: carol, fullName: "Carol" },
+      { id: me, fullName: "Me", role: "student", photoUrl: null, companyName: null, companyLogoUrl: null, isOnline: true, lastSeen: null, deletedAt: null },
+      { id: bob, fullName: "Bob", role: "student", photoUrl: null, companyName: null, companyLogoUrl: null, isOnline: false, lastSeen: null, deletedAt: null },
+      { id: carol, fullName: "Carol", role: "student", photoUrl: null, companyName: null, companyLogoUrl: null, isOnline: false, lastSeen: null, deletedAt: null },
     ];
     connectionCalls = [];
+    contactCalls = [];
     userCalls = [];
   });
   after(async () => {
     (prisma.connection as any).findFirst = originals.findFirst;
+    (prisma.connection as any).findMany = originals.connectionFindMany;
     (prisma.user as any).findMany = originals.findMany;
     await mongoose.disconnect();
     await server?.stop();
@@ -96,6 +108,7 @@ describe("Chat service with real MongoDB", () => {
   it("returns no chats without profile or unread lookups", async () => {
     assert.deepEqual(await getMyChats(me), []);
     assert.equal(userCalls.length, 0);
+    assert.equal(contactCalls.length, 0);
   });
   it("maps chats, deduplicates profile IDs, and calculates only incoming unread counts", async () => {
     const first = await Chat.create({ user_1_id: me, user_2_id: bob, last_message_at: new Date(1000) });
@@ -122,6 +135,30 @@ describe("Chat service with real MongoDB", () => {
     assert.deepEqual(result[1].lastMessage, { content: "preview", senderId: bob, createdAt: result[1].lastMessageAt });
     assert.equal(result.some((item) => item.id === String(otherChat._id)), false);
   });
+  it("shows presence only for accepted contacts with one contact query and one profile query", async () => {
+    const acceptedChat = await Chat.create({ user_1_id: me, user_2_id: bob });
+    const lapsedChat = await Chat.create({ user_1_id: me, user_2_id: carol });
+    contactRows = [
+      { requesterId: me, receiverId: bob, status: "accepted" },
+      { requesterId: me, receiverId: carol, status: "removed" },
+    ];
+    users.find((user) => user.id === bob)!.isOnline = true;
+    users.find((user) => user.id === bob)!.lastSeen = new Date("2026-04-05T06:07:08.000Z");
+    users.find((user) => user.id === carol)!.isOnline = false;
+    users.find((user) => user.id === carol)!.lastSeen = new Date("2026-04-06T07:08:09.000Z");
+
+    const chats = await getMyChats(me);
+    const accepted = chats.find((chat) => chat.id === String(acceptedChat._id))!;
+    const lapsed = chats.find((chat) => chat.id === String(lapsedChat._id))!;
+    assert.equal(accepted.otherUser.isOnline, true);
+    assert.equal(accepted.otherUser.lastSeen, null);
+    assert.equal("isOnline" in lapsed.otherUser, false);
+    assert.equal("lastSeen" in lapsed.otherUser, false);
+    assert.equal(contactRows.filter((row) => row.status === "accepted").length, 1);
+    assert.equal(userCalls.length, 1);
+    assert.equal(contactCalls.length, 1);
+  });
+
   it("keeps chats with deleted users using a placeholder", async () => {
     users = [{ id: me }];
     await Chat.create({ user_1_id: me, user_2_id: bob });

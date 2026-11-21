@@ -28,3 +28,6 @@ export type CreateChatInput = z.infer<typeof createChatBodySchema>;
 export type ListChatsQuery = z.infer<typeof listChatsQuerySchema>;
 export type ListMessagesQuery = z.infer<typeof listMessagesQuerySchema>;
 export type SendMessageInput = z.infer<typeof sendMessageBodySchema>;
+
+
+export { chatId as chatIdSchema };

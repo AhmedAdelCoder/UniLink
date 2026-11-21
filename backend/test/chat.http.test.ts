@@ -23,6 +23,7 @@ describe("chat REST over HTTP", () => {
   let http: Server;
   let origin: string;
   const originalConnectionFindFirst = prisma.connection.findFirst;
+  const originalConnectionFindMany = prisma.connection.findMany;
   const originalUserFindMany = prisma.user.findMany;
   const originalUserFindUnique = prisma.user.findUnique;
   let connectedPairs: Set<string>;
@@ -41,10 +42,19 @@ describe("chat REST over HTTP", () => {
       const directions: Array<{ requesterId: string; receiverId: string }> = where.OR ?? [];
       return directions.some((p) => connectedPairs.has(pairKey(p.requesterId, p.receiverId))) ? { id: "accepted" } : null;
     };
+    (prisma.connection as any).findMany = async (...args: unknown[]) => {
+      const query = args[0] as any;
+      return [...connectedPairs].map((pair) => {
+        const [requesterId, receiverId] = pair.split(":");
+        return { requesterId, receiverId, status: "accepted" };
+      }).filter((row) => row.status === query.where.status && query.where.OR.some((clause: any) =>
+        Object.entries(clause).every(([key, value]) => (row as any)[key] === value)))
+        .map(({ requesterId, receiverId }) => ({ requesterId, receiverId }));
+    };
     (prisma.user as any).findMany = async (...args: unknown[]) => {
       userCalls.push(args[0]);
       const query = args[0] as { where: { id: { in: string[] }; deletedAt?: null } };
-      return users.filter((user) => query.where.id.in.includes(user.id) && (!query.where.deletedAt || user.deletedAt == null))
+      return users.filter((user) => query.where.id.in.includes(user.id) && (query.where.deletedAt === null ? user.deletedAt == null : true))
         .map(({ deletedAt: _deletedAt, ...user }) => user);
     };
     (prisma.user as any).findUnique = async (...args: unknown[]) => {
@@ -67,6 +77,7 @@ describe("chat REST over HTTP", () => {
   });
   after(async () => {
     (prisma.connection as any).findFirst = originalConnectionFindFirst;
+    (prisma.connection as any).findMany = originalConnectionFindMany;
     (prisma.user as any).findMany = originalUserFindMany;
     (prisma.user as any).findUnique = originalUserFindUnique;
     await new Promise<void>((resolve, reject) => http.close((error) => error ? reject(error) : resolve()));
@@ -90,6 +101,18 @@ describe("chat REST over HTTP", () => {
       } else if (typeof current === "object" && current !== null) {
         for (const [key, child] of Object.entries(current)) {
           assert.equal(forbidden.has(key), false, `forbidden response key ${path}.${key}`);
+          visit(child, `${path}.${key}`);
+        }
+      }
+    };
+    visit(value, location);
+  };
+  const assertNoPresence = (value: unknown, location = "response") => {
+    const visit = (current: unknown, path: string) => {
+      if (Array.isArray(current)) current.forEach((item, index) => visit(item, `${path}[${index}]`));
+      else if (typeof current === "object" && current !== null) {
+        for (const [key, child] of Object.entries(current)) {
+          assert.equal(["isOnline", "lastSeen"].includes(key), false, `unexpected presence key ${path}.${key}`);
           visit(child, `${path}.${key}`);
         }
       }
@@ -249,6 +272,22 @@ describe("chat REST over HTTP", () => {
     assert.equal((await Message.findById(sentId).lean())?.is_read, true);
   });
 
+  it("rejects REST sends to a soft-deleted recipient without revealing account state", async () => {
+    const chat = await Chat.create({ user_1_id: A, user_2_id: B });
+    users = users.filter((user) => user.id !== B);
+    const response = await request(`/${chat._id}/messages`, {
+      method: "POST",
+      body: { content: "must not be delivered", clientMessageId: "deleted-recipient" },
+    });
+    assert.equal(response.status, 403);
+    assert.deepEqual(await json(response), {
+      success: false,
+      message: "You can only message your accepted connections",
+    });
+    assert.equal(await Message.countDocuments({ chat_id: chat._id }), 0);
+    assert.equal((await Chat.findById(chat._id).lean())?.last_message, null);
+  });
+
   it("uses the default 30-message page, sorts newest first, and returns a next cursor only when more messages exist", async () => {
     const chat = await makeChat();
     const chatId = String(chat._id);
@@ -362,6 +401,30 @@ describe("chat REST over HTTP", () => {
     const deleted = await request(`/${chatId}`);
     assert.equal(deleted.status, 404);
     assert.deepEqual(await json(deleted), { success: false, message: "Chat not found" });
+  });
+
+  it("hides presence throughout list and detail REST responses after connection removal", async () => {
+    const chat = await makeChat(A, B);
+    connectedPairs.delete(pairKey(A, B));
+
+    const listResponse = await request("/");
+    assert.equal(listResponse.status, 200);
+    const listBody = await json(listResponse);
+    assertHygienic(listBody, "GET /chat");
+    const listed = listBody.data.chats.find((item: any) => item.id === String(chat._id));
+    assert.ok(listed);
+    assert.equal("isOnline" in listed.otherUser, false);
+    assert.equal("lastSeen" in listed.otherUser, false);
+    assertNoPresence(listBody, "GET /chat");
+
+    const detailResponse = await request(`/${chat._id}`);
+    assert.equal(detailResponse.status, 200);
+    const detailBody = await json(detailResponse);
+    assertHygienic(detailBody, "GET /chat/:id");
+    assert.equal(detailBody.data.chat.canSend, false);
+    assert.equal("isOnline" in detailBody.data.chat.otherUser, false);
+    assert.equal("lastSeen" in detailBody.data.chat.otherUser, false);
+    assertNoPresence(detailBody, "GET /chat/:id");
   });
 
   it("returns a deleted participant placeholder and disables sending in chat details", async () => {

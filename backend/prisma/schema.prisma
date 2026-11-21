@@ -217,7 +217,8 @@ model Connection {
   requester User @relation("ConnectionRequester", fields: [requesterId], references: [id])
   receiver  User @relation("ConnectionReceiver", fields: [receiverId], references: [id])
 
-  @@index([receiverId])
+  @@index([requesterId, status])
+  @@index([receiverId, status])
   @@map("connections")
 }
 // ------------------------------------------------------------

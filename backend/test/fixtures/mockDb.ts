@@ -41,6 +41,9 @@ export interface MockUserDoc {
   id: string;
   fullName: string;
   photoUrl: string | null;
+  isOnline?: boolean;
+  lastSeen?: Date | null;
+  passwordHash?: string | null;
 }
 
 const emptyCleanupState = (): ICleanupState => ({
@@ -82,6 +85,8 @@ export class MockDatabaseFixture {
   users = new Map<string, MockUserDoc>();
 
   faults = new Map<string, Error>();
+  prismaUserFindUniqueCalls: unknown[] = [];
+  prismaUserFindManyCalls: unknown[] = [];
 
   private originalPostMethods: Record<string, unknown> = {};
   private originalLikeMethods: Record<string, unknown> = {};
@@ -137,6 +142,8 @@ export class MockDatabaseFixture {
   }
 
   reset() {
+    this.prismaUserFindUniqueCalls = [];
+    this.prismaUserFindManyCalls = [];
     this.posts.clear();
     this.comments.clear();
     this.likes.clear();
@@ -575,23 +582,23 @@ export class MockDatabaseFixture {
   private installPrismaMocks() {
     const self = this;
 
-    (prisma.user as unknown as { findUnique: unknown }).findUnique = async ({
-      where,
-    }: {
+    (prisma.user as unknown as { findUnique: unknown }).findUnique = async (args: {
       where: { id: string };
+      select?: Record<string, unknown>;
     }) => {
+      self.prismaUserFindUniqueCalls.push(args);
       self.checkFault('prisma.user.findUnique');
-      const user = self.users.get(where.id);
+      const user = self.users.get(args.where.id);
       return user ? self.cloneDoc(user) : null;
     };
 
-    (prisma.user as unknown as { findMany: unknown }).findMany = async ({
-      where,
-    }: {
+    (prisma.user as unknown as { findMany: unknown }).findMany = async (args: {
       where?: { id?: { in?: string[] } };
+      select?: Record<string, unknown>;
     }) => {
+      self.prismaUserFindManyCalls.push(args);
       self.checkFault('prisma.user.findMany');
-      const ids = where?.id?.in ?? [];
+      const ids = args.where?.id?.in ?? [];
       const result: MockUserDoc[] = [];
       for (const id of ids) {
         const u = self.users.get(id);

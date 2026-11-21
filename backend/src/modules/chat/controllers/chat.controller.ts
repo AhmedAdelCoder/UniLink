@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-
+import { emitMessageNew, emitMessageRead } from "../sockets/chat.emitter.js";
 import {
   createOrGetChat,
   getMyChats,
@@ -70,14 +70,16 @@ export const getMessagesController: RequestHandler = async (req, res) => {
     data,
   });
 };
-
 //!=============== POST /chat/:chatId/messages ==============
 export const sendMessageController: RequestHandler = async (req, res) => {
   const { chatId } = req.validated!.params as ChatIdParam;
   const input = req.body as SendMessageInput;
   const userId = req.user!.userId;
 
-  const { message, created } = await sendMessage(userId, chatId, input);
+  const { message, created, recipientId } = await sendMessage(userId, chatId, input);
+
+  // Same announcement the socket path makes: only for a newly created message, never on a retry.
+  if (created) emitMessageNew(message, userId, recipientId);
 
   // 201 for a new message, 200 when it was a retry of an already saved one.
   res.status(created ? 201 : 200).json({
@@ -91,7 +93,10 @@ export const markChatAsReadController: RequestHandler = async (req, res) => {
   const { chatId } = req.validated!.params as ChatIdParam;
   const userId = req.user!.userId;
 
-  const { updated } = await markChatAsRead(userId, chatId);
+  const { updated, otherUserId } = await markChatAsRead(userId, chatId);
+
+  // Notify the other participant only when something actually changed.
+  if (updated) emitMessageRead(chatId, userId, otherUserId);
 
   res.status(200).json({
     success: true,
